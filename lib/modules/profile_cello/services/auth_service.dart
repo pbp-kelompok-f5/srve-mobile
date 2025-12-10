@@ -3,7 +3,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 class AuthService {
   // 🌐 Base URL Configuration
   // Karena kamu pakai Flutter langsung (bukan emulator), pakai localhost
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000';
   
   // Alternatif: Kalau 127.0.0.1 ga jalan, coba 'http://localhost:8000'
   
@@ -14,29 +14,21 @@ class AuthService {
     String password,
   ) async {
     try {
+      await request.get("$baseUrl/csrf/"); 
+
       final response = await request.post(
-        '$baseUrl/accounts/ajax/login/',
-        {
-          'username': username,
-          'password': password,
-        },
+        "$baseUrl/accounts/ajax/login/",
+        {"username": username, "password": password},
       );
 
-      // Debug print
       print('Login Response: $response');
 
-      if (response is Map) {
-        return {
-          'success': response['success'] ?? false,
-          'message': response['message'] ?? 'Login failed',
-          'redirect_url': response['redirect_url'] ?? '/',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Invalid response format from server',
-        };
-      }
+      return {
+        'success': response['success'] ?? false,
+        'message': response['message'] ?? 'Login failed',
+        'redirect_url': response['redirect_url'] ?? '/',
+      };
+
     } catch (e) {
       print('Login Error: $e');
       return {
@@ -45,6 +37,7 @@ class AuthService {
       };
     }
   }
+
 
   // 📝 Register
   static Future<Map<String, dynamic>> register(
