@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
-import 'profile_screen.dart';
+import '../../profile_cello/screens/profile_screen.dart';
 import 'landing_page.dart';
-import 'profile_menu_screen.dart';
+import '../../profile_cello/screens/profile_menu_screen.dart';
+import 'package:srve_mobile/modules/threads/screens/threads_home_page.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -128,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     HomeTabScreen(),
     PlaceholderWidget(text: "Communities"),
-    PlaceholderWidget(text: "Threads"),
+    ThreadsHomePage(),     
     PlaceholderWidget(text: "Matches"),
     PlaceholderWidget(text: "Courts"),
   ];

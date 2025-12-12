@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'landing_page.dart';
+import '../../base/screens/landing_page.dart';
 
 class DeleteProfileScreen extends StatefulWidget {
   const DeleteProfileScreen({super.key});

@@ -36,4 +36,22 @@ class ThreadPost {
       isLiked: json['is_liked'] as bool? ?? false,
     );
   }
+
+  ThreadPost copyWith({
+    int? likesCount,
+    int? repliesCount,
+    bool? isLiked,
+  }) {
+    return ThreadPost(
+      id: id,
+      author: author,
+      content: content,
+      imageUrl: imageUrl,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      likesCount: likesCount ?? this.likesCount,
+      repliesCount: repliesCount ?? this.repliesCount,
+      isLiked: isLiked ?? this.isLiked,
+    );
+  }
 }

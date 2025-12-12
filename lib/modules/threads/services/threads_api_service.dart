@@ -1,14 +1,19 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
+import 'package:srve_mobile/modules/threads/models/thread_post.dart';
+import 'package:srve_mobile/modules/threads/models/thread_reply.dart';
 
-import 'package:srve_mobile/core/config/env.dart';
-import 'package:srve_mobile/features/threads/models/thread_post.dart';
-import 'package:srve_mobile/features/threads/models/thread_reply.dart';
+class LikeResult {
+  final bool liked;
+  final int likesCount;
+
+  LikeResult({required this.liked, required this.likesCount});
+}
 
 class ThreadsApiService {
-  final http.Client _client;
+  final CookieRequest request;
 
-  ThreadsApiService({http.Client? client}) : _client = client ?? http.Client();
+  ThreadsApiService(this.request);
 
   Future<List<ThreadPost>> fetchThreads({
     int page = 1,
@@ -21,42 +26,35 @@ class ThreadsApiService {
       if (query.isNotEmpty) 'q': query,
     });
 
-    final response = await _client.get(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to load threads (${response.statusCode})');
-    }
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final List<dynamic> results = data['results'] as List<dynamic>;
-
+    final data = await request.get(uri.toString());
+    final results = data['results'] as List<dynamic>;
     return results
         .map((item) => ThreadPost.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
+  Future<LikeResult> toggleLike(int postId) async {
+    final uri = Uri.parse('${Env.threadsApi}$postId/like-toggle/');
+    final data = await request.post(uri.toString(), {});
+    return LikeResult(
+      liked: data['liked'] as bool,
+      likesCount: data['likes_count'] as int,
+    );
+  }
+
   Future<List<ThreadReply>> fetchReplies(int postId) async {
     final uri = Uri.parse('${Env.threadsApi}$postId/replies/');
-    final response = await _client.get(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to load replies');
-    }
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    final List<dynamic> results = data['results'] as List<dynamic>;
-
+    final data = await request.get(uri.toString());
+    final results = data['results'] as List<dynamic>;
     return results
         .map((item) => ThreadReply.fromJson(item as Map<String, dynamic>))
         .toList();
   }
 
-  Future<void> toggleLike(int postId) async {
-    final uri = Uri.parse('${Env.threadsApi}$postId/like-toggle/');
-    final response = await _client.post(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to toggle like');
-    }
+  Future<ThreadReply> createReply(int postId, String content) async {
+    final uri = Uri.parse('${Env.threadsApi}$postId/replies/');
+    final data = await request.post(uri.toString(), {'content': content});
+    final replyJson = data['reply'] as Map<String, dynamic>;
+    return ThreadReply.fromJson(replyJson);
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
-import 'home_screen.dart';
+import '../../base/screens/home_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';

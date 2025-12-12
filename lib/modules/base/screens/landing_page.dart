@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
-import 'register_screen.dart';
+import '../../profile_cello/screens/login_screen.dart';
+import '../../profile_cello/screens/register_screen.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
