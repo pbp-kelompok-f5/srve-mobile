@@ -1,5 +1,6 @@
 // lib/communities/screens/community_form_page.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -23,16 +24,22 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
-  late TextEditingController _sportController;
 
   /// Sesuaikan pilihan skill level dengan yang ada di Django (choices skill_level)
   final List<String> _skillLevelOptions = const [
-    'Beginner',
-    'Intermediate',
-    'Advanced',
-    'Expert'
+    'beginner',
+    'intermediate',
+    'advanced',
+    'expert'
   ];
 
+  final List<String> _sportOptions = const [
+    'tennis',
+    'padel',
+    'badminton'
+  ];
+
+  String? _selectedSport;
   String? _selectedSkillLevel;
   bool _openToPublic = true;
 
@@ -52,9 +59,9 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
     _descriptionController = TextEditingController(
       text: widget.community?.description ?? '',
     );
-    _sportController = TextEditingController(
-      text: widget.community?.sport ?? '',
-    );
+    _selectedSport = widget.community?.sport.isNotEmpty == true
+        ? widget.community!.sport
+        : null;
 
     _selectedSkillLevel = widget.community?.skillLevel.isNotEmpty == true
         ? widget.community!.skillLevel
@@ -70,12 +77,20 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _sportController.dispose();
     super.dispose();
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    String? errorMessage;
+
+    if (_selectedSport == null || _selectedSport!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silakan pilih jenis olahraga.')),
+      );
+      return;
+    }
 
     if (_selectedSkillLevel == null || _selectedSkillLevel!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +105,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
 
     final name = _nameController.text.trim();
     final description = _descriptionController.text.trim();
-    final sport = _sportController.text.trim();
+    final sport = _selectedSport!.trim();
     final skillLevel = _selectedSkillLevel!.trim();
 
     bool success = false;
@@ -116,6 +131,8 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
       }
     } catch (e) {
       success = false;
+      errorMessage = e.toString();
+      debugPrint('Community form submit error: $e');
     }
 
     if (!mounted) return;
@@ -138,8 +155,12 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
       Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Terjadi kesalahan. Coba lagi nanti.'),
+        SnackBar(
+          content: Text(
+            errorMessage != null
+                ? 'Terjadi kesalahan: $errorMessage'
+                : 'Terjadi kesalahan. Coba lagi nanti.',
+          ),
         ),
       );
     }
@@ -188,16 +209,26 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                     const SizedBox(height: 16),
 
                     // SPORT / JENIS OLAHRAGA
-                    TextFormField(
-                      controller: _sportController,
+                    DropdownButtonFormField<String>(
+                      value: _selectedSport,
                       decoration: const InputDecoration(
                         labelText: 'Jenis Olahraga',
-                        hintText: 'Misal: Futsal, Basket, Badminton',
+                        hintText: 'Pilih jenis olahraga',
                         border: OutlineInputBorder(),
                       ),
-                      textInputAction: TextInputAction.next,
+                      items: _sportOptions.map((sport) {
+                        return DropdownMenuItem<String>(
+                          value: sport,
+                          child: Text(sport),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSport = value;
+                        });
+                      },
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
+                        if (value == null || value.isEmpty) {
                           return 'Jenis olahraga tidak boleh kosong.';
                         }
                         return null;

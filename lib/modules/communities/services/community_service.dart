@@ -1,13 +1,49 @@
 // lib/services/community_service.dart
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 
 import '../models/community.dart';
 
+// Gunakan host yang sesuai untuk emulator / platform:
+// - Android emulator: 10.0.2.2 (loopback ke host)
+// - iOS simulator / web / desktop: localhost / 127.0.0.1
+final String baseUrl = () {
+  if (kIsWeb) return "http://127.0.0.1:8000";
+  if (Platform.isAndroid) return "http://10.0.2.2:8000";
+  return "http://127.0.0.1:8000";
+}();
 
-const String baseUrl = "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id";
+/// Pastikan kita punya CSRF token sebelum POST ke endpoint Django form-based.
+Future<String?> _ensureCsrfToken(CookieRequest request) async {
+  var token = request.cookies['csrftoken']?.value;
+  if (token != null && token.isNotEmpty) return token;
+
+  try {
+    await request.get("$baseUrl/csrf/");
+    token = request.cookies['csrftoken']?.value;
+  } catch (_) {
+    // jika gagal, biarkan null; server mungkin csrf_exempt
+  }
+  return token;
+}
+
+/// Bangun header untuk http.post dengan cookie + CSRF.
+Future<Map<String, String>> _buildHeaders(CookieRequest request) async {
+  final headers = Map<String, String>.from(request.headers);
+  final csrfToken = await _ensureCsrfToken(request);
+
+  if (csrfToken != null && csrfToken.isNotEmpty) {
+    headers['X-CSRFToken'] = csrfToken;
+  }
+  headers['X-Requested-With'] = 'XMLHttpRequest';
+
+  return headers;
+}
 
 /// Kumpulan endpoint yang mengikuti views Django kamu.
 /// Silakan sesuaikan path-nya dengan urls.py.
@@ -21,10 +57,8 @@ class CommunityEndpoints {
   static String detailCommunity(String slug) =>
       "$baseUrl/communities/$slug/json/";
 
-  /// View: create_community / CreateCommunityView
-  /// Di Django sekarang form HTML, tapi kamu bisa pakai endpoint ini
-  /// untuk Flutter kalau: menerima POST + balikin JsonResponse untuk AJAX.
-  static String createCommunity() => "$baseUrl/communities/create/";
+  /// JSON API create (gunakan endpoint yang mengembalikan JsonResponse)
+  static String createCommunity() => "$baseUrl/communities/api/create/";
 
   /// View: edit_community
   static String editCommunity(String slug) =>
@@ -40,6 +74,43 @@ class CommunityService {
   final CookieRequest request;
 
   CommunityService(this.request);
+
+  /// Kirim POST ke backend dengan header cookies/CSRF dan parse respons.
+  /// Melempar Exception ketika status bukan 2xx atau backend mengirim success=false.
+  Future<Map<String, dynamic>?> _postForm(
+    String url,
+    Map<String, String> data,
+  ) async {
+    final headers = await _buildHeaders(request);
+    final response =
+        await http.post(Uri.parse(url), headers: headers, body: data);
+
+    final contentType = response.headers['content-type'] ?? '';
+    Map<String, dynamic>? jsonBody;
+    if (contentType.contains('application/json')) {
+      try {
+        jsonBody = json.decode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        // ignore decode error, handle via status below
+      }
+    }
+
+    final isOkStatus =
+        response.statusCode >= 200 && response.statusCode < 300;
+    final successFlag =
+        jsonBody == null ? true : _isSuccessResponse(jsonBody);
+
+    if (isOkStatus && successFlag) {
+      return jsonBody;
+    }
+
+    final errors = jsonBody?['errors'];
+    final errorMessage = errors != null
+        ? errors.toString()
+        : "HTTP ${response.statusCode}: ${response.body}";
+
+    throw Exception(errorMessage);
+  }
 
   /// Helper: cek apakah response JSON dari Django menandakan sukses.
   /// Biar fleksibel dengan berbagai skema:
@@ -111,19 +182,6 @@ class CommunityService {
   // ---------------------------------------------------------------------------
 
   /// Buat komunitas baru.
-  ///
-  /// Mengacu ke view: create_community / CreateCommunityView
-  /// yang menerima field form:
-  /// - name
-  /// - description
-  /// - sport
-  /// - skill_level
-  /// - open_to_public
-  ///
-  /// Catatan:
-  /// - Di Django, kemungkinan besar endpoint ini sekarang utamanya form HTML.
-  ///   Kalau di dalam view kamu sudah handle request AJAX dan balikin JsonResponse,
-  ///   Flutter bisa langsung pakai endpoint yang sama.
   Future<bool> createCommunity({
     required String name,
     required String description,
@@ -141,10 +199,12 @@ class CommunityService {
       'open_to_public': openToPublic ? "true" : "false",
     };
 
-    final dynamic response =
-        await request.post(CommunityEndpoints.createCommunity(), data);
+    final responseJson = await _postForm(
+      CommunityEndpoints.createCommunity(),
+      data,
+    );
 
-    return _isSuccessResponse(response);
+    return _isSuccessResponse(responseJson);
   }
 
   // ---------------------------------------------------------------------------
@@ -152,13 +212,6 @@ class CommunityService {
   // ---------------------------------------------------------------------------
 
   /// Update komunitas yang sudah ada.
-  ///
-  /// Mengacu ke view: edit_community
-  /// biasanya path-nya /communities/<slug>/edit/
-  ///
-  /// Catatan:
-  /// - Sama seperti create, sebaiknya view edit di Django juga handle
-  ///   request AJAX / JSON dan balikin JsonResponse supaya Flutter enak makainya.
   Future<bool> updateCommunity({
     required String slug,
     required String name,
@@ -175,10 +228,12 @@ class CommunityService {
       'open_to_public': openToPublic ? "true" : "false",
     };
 
-    final dynamic response =
-        await request.post(CommunityEndpoints.editCommunity(slug), data);
+    final responseJson = await _postForm(
+      CommunityEndpoints.editCommunity(slug),
+      data,
+    );
 
-    return _isSuccessResponse(response);
+    return _isSuccessResponse(responseJson);
   }
 
   // ---------------------------------------------------------------------------
@@ -186,18 +241,13 @@ class CommunityService {
   // ---------------------------------------------------------------------------
 
   /// Hapus komunitas.
-  ///
-  /// Mengacu ke view: delete_community
-  /// - biasanya hanya boleh dilakukan oleh creator / owner.
-  /// - di Django sekarang, view-nya mungkin redirect kalau form HTML,
-  ///   tapi kalau sudah kamu lengkapi dengan JsonResponse untuk AJAX,
-  ///   Flutter bisa pakai endpoint yang sama.
   Future<bool> deleteCommunity(String slug) async {
-    // Biasanya delete di Django butuh POST (bukan GET).
-    final dynamic response =
-        await request.post(CommunityEndpoints.deleteCommunity(slug), {});
+    final responseJson = await _postForm(
+      CommunityEndpoints.deleteCommunity(slug),
+      {},
+    );
 
-    return _isSuccessResponse(response);
+    return _isSuccessResponse(responseJson);
   }
 
   // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import '../../profile_cello/screens/profile_screen.dart';
 import 'landing_page.dart';
 import '../../profile_cello/screens/profile_menu_screen.dart';
 import 'package:srve_mobile/modules/threads/screens/threads_home_page.dart';
+import '../../communities/screens/communities_list_page.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -129,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = const [
     HomeTabScreen(),
-    PlaceholderWidget(text: "Communities"),
+    CommunitiesListPage(),
     ThreadsHomePage(),     
     PlaceholderWidget(text: "Matches"),
     PlaceholderWidget(text: "Courts"),
