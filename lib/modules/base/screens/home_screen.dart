@@ -8,6 +8,8 @@ import 'package:srve_mobile/modules/threads/screens/threads_home_page.dart';
 import '../../communities/screens/communities_list_page.dart';
 import 'dart:convert';
 import 'package:srve_mobile/config/api.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/facility_list_page.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
 
 
 
@@ -116,7 +118,7 @@ class _UserMenuButtonState extends State<UserMenuButton> {
               Provider.of<CookieRequest>(context, listen: false);
 
           await request.post(
-             " http://10.0.2.2:8000/accounts/ajax/logout/", {});
+             "http://10.0.2.2:8000/accounts/ajax/logout/", {});
 
           Navigator.pushAndRemoveUntil(
             context,
@@ -324,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
     CommunitiesListPage(),
     ThreadsHomePage(),     
     PlaceholderWidget(text: "Matches"),
-    PlaceholderWidget(text: "Courts"),
+    BookingListPage(),
   ];
   void _openBookingSmokeTest(BuildContext context) {
   final request = context.read<CookieRequest>();
@@ -673,7 +675,12 @@ class HomeTabScreen extends StatelessWidget {
                       icon: Icons.calendar_month,
                       label: "Book Court",
                       color: const Color(0xFF6B7E5A),
-                      onTap: () => openBookingSmokeTest(context),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const FacilityListPage()),
+                        );
+                      },
                     ),
                     _QuickActionCard(
                       icon: Icons.sports,
