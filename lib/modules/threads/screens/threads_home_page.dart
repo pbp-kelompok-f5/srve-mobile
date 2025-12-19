@@ -388,7 +388,6 @@ class _TabBarRow extends StatelessWidget {
   final void Function(String) onChanged;
 
   const _TabBarRow({
-    super.key,
     required this.tab,
     required this.onChanged,
   });
@@ -430,7 +429,6 @@ class _TabChip extends StatelessWidget {
   final void Function(String) onSelected;
 
   const _TabChip({
-    super.key,
     required this.label,
     required this.value,
     required this.selected,

@@ -1,15 +1,16 @@
 import 'dart:convert';
 
-List<HostReview> hostReviewFromJson(String str) => 
+List<HostReview> hostReviewFromJson(String str) =>
     List<HostReview>.from(json.decode(str).map((x) => HostReview.fromJson(x)));
 
 class HostReview {
   final int pk;
   final String username;
+
   final double rating;
   final String comment;
   final String createdAt;
-  // Field Khusus Host
+
   final double communication;
   final double responsiveness;
   final double punctuality;
@@ -27,8 +28,9 @@ class HostReview {
 
   factory HostReview.fromJson(Map<String, dynamic> json) {
     return HostReview(
-      pk: json['pk'],
-      username: json['username'],
+      pk: json['id'],
+      username: json['author']['username'],
+
       rating: (json['rating'] as num).toDouble(),
       comment: json['comment'],
       createdAt: json['created_at'],

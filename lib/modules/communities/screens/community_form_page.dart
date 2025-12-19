@@ -1,6 +1,5 @@
 // lib/communities/screens/community_form_page.dart
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -218,7 +217,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
 
                     // SPORT / JENIS OLAHRAGA
                     DropdownButtonFormField<String>(
-                      value: _selectedSport,
+                      initialValue: _selectedSport,
                       decoration: const InputDecoration(
                         labelText: 'Sport',
                         hintText: 'Choose a sport',

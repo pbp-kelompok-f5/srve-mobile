@@ -821,7 +821,7 @@ class _QuickActionCard extends StatelessWidget {
 }
 
 class _HorizontalPlaceholder extends StatelessWidget {
-  const _HorizontalPlaceholder({super.key});
+  const _HorizontalPlaceholder();
 
   @override
   Widget build(BuildContext context) {

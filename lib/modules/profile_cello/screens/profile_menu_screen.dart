@@ -6,8 +6,6 @@ import '../../base/screens/home_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
-import 'match_history_screen.dart';
-import 'my_communities_screen.dart';
 import 'delete_profile_screen.dart';
 
 class ProfileMenuScreen extends StatelessWidget {
