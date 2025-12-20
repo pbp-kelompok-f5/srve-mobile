@@ -56,20 +56,22 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text('No communities available'),
+                    );
+                  }
+
                   if (snapshot.hasError) {
                     return Center(
                       child: Text(
-                        'Terjadi kesalahan saat memuat komunitas.\n${snapshot.error}',
+                        'Error. \n${snapshot.error}',
                         textAlign: TextAlign.center,
                       ),
                     );
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text('Belum ada komunitas yang terdaftar.'),
-                    );
-                  }
+                  
 
                   final communities = snapshot.data!;
 
@@ -104,7 +106,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   c.description.isEmpty
-                                      ? 'Tidak ada deskripsi.'
+                                      ? 'No Description'
                                       : c.description,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -148,7 +150,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${c.membersCount} anggota',
+                                      '${c.membersCount} members',
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                   ],
@@ -161,7 +163,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                                     Chip(
                                       label: Text(
                                         c.openToPublic
-                                            ? 'Terbuka untuk umum'
+                                            ? 'Public'
                                             : 'Private',
                                       ),
                                       avatar: Icon(
@@ -188,7 +190,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                                       ),
                                     if (!c.isAdmin && c.isMember)
                                       const Chip(
-                                        label: Text('Anggota'),
+                                        label: Text('Members'),
                                         avatar: Icon(
                                           Icons.check,
                                           size: 16,
@@ -233,7 +235,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Silakan login terlebih dahulu untuk melihat daftar communities.',
+                  'login required to view communities.',
                   textAlign: TextAlign.center,
                 ),
               ),
