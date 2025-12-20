@@ -13,4 +13,5 @@ class Env {
   static String get bookingCancelApi => '$baseUrl/booking/api/cancel/';
 
   static String get bookingBookingsApi => '$baseUrl/booking/json_booking';
+
 }

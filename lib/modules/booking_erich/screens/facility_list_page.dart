@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 
+import '../providers/booking_provider.dart';
 import '../models/facility.dart';
-import '../services/booking_api_service.dart';
-
-
-import '../screens/facility_detail_page.dart';
-
+import '../utils/formatters.dart';
+import 'facility_detail_page.dart';
 
 class FacilityListPage extends StatefulWidget {
   const FacilityListPage({super.key});
@@ -17,73 +15,134 @@ class FacilityListPage extends StatefulWidget {
 }
 
 class _FacilityListPageState extends State<FacilityListPage> {
-  final _service = const BookingApiService();
-  late Future<List<Facility>> _future;
+  String _query = '';
+  String _sportFilter = 'all'; // all | tennis | badminton | padel
 
   @override
   void initState() {
     super.initState();
-    // future diisi di didChangeDependencies (karena butuh context/provider)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final request = context.read<CookieRequest>();
+      context.read<BookingProvider>().loadFacilities(request);
+    });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final request = context.read<CookieRequest>();
-    _future = _service.fetchFacilities(request);
+  List<Facility> _applyFilter(List<Facility> data) {
+    final q = _query.trim().toLowerCase();
+
+    return data.where((f) {
+      final sportOk = _sportFilter == 'all' || f.sport == _sportFilter;
+
+      if (!sportOk) return false;
+      if (q.isEmpty) return true;
+
+      final hay = '${f.name} ${f.city}'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final request = context.read<CookieRequest>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Court'),
+        actions: [
+          IconButton(
+            onPressed: () => context.read<BookingProvider>().loadFacilities(request, force: true),
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-      body: FutureBuilder<List<Facility>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Consumer<BookingProvider>(
+        builder: (context, prov, _) {
+          final filtered = _applyFilter(prov.facilities);
 
-          if (snapshot.hasError) {
-            return Padding(
+          return RefreshIndicator(
+            onRefresh: () => prov.loadFacilities(request, force: true),
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Gagal memuat data facility.',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+              children: [
+                // Search
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search by name/city...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  const SizedBox(height: 8),
-                  Text('${snapshot.error}'),
-                  const SizedBox(height: 16),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+                const SizedBox(height: 12),
+
+                // Sport chips
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    _SportChip(
+                      label: 'All',
+                      active: _sportFilter == 'all',
+                      onTap: () => setState(() => _sportFilter = 'all'),
+                    ),
+                    _SportChip(
+                      label: 'Tennis',
+                      active: _sportFilter == 'tennis',
+                      onTap: () => setState(() => _sportFilter = 'tennis'),
+                    ),
+                    _SportChip(
+                      label: 'Badminton',
+                      active: _sportFilter == 'badminton',
+                      onTap: () => setState(() => _sportFilter = 'badminton'),
+                    ),
+                    _SportChip(
+                      label: 'Padel',
+                      active: _sportFilter == 'padel',
+                      onTap: () => setState(() => _sportFilter = 'padel'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (prov.facilitiesLoading) ...[
+                  const SizedBox(height: 40),
+                  const Center(child: CircularProgressIndicator()),
+                ] else if (prov.facilitiesError != null) ...[
+                  Text(
+                    'Gagal memuat facilities:\n${prov.facilitiesError}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () {
-                      final request = context.read<CookieRequest>();
-                      setState(() => _future = _service.fetchFacilities(request));
-                    },
+                    onPressed: () => prov.loadFacilities(request, force: true),
                     child: const Text('Coba lagi'),
                   ),
+                ] else if (filtered.isEmpty) ...[
+                  const SizedBox(height: 50),
+                  const Center(child: Text('Tidak ada facility yang cocok.')),
+                ] else ...[
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) => _FacilityCard(
+                      facility: filtered[i],
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FacilityDetailPage(facility: filtered[i]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
-              ),
-            );
-          }
-
-          final data = snapshot.data ?? [];
-          if (data.isEmpty) {
-            return const Center(child: Text('Belum ada facility.'));
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: data.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) {
-              final f = data[i];
-              return _FacilityCard(facility: f);
-            },
+              ],
+            ),
           );
         },
       ),
@@ -91,9 +150,35 @@ class _FacilityListPageState extends State<FacilityListPage> {
   }
 }
 
+class _SportChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _SportChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: active,
+      onSelected: (_) => onTap(),
+    );
+  }
+}
+
 class _FacilityCard extends StatelessWidget {
   final Facility facility;
-  const _FacilityCard({required this.facility});
+  final VoidCallback onTap;
+
+  const _FacilityCard({
+    required this.facility,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -101,14 +186,7 @@ class _FacilityCard extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FacilityDetailPage(facility: f),
-          ),
-        );
-      },
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -123,7 +201,7 @@ class _FacilityCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text('${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}'),
             const SizedBox(height: 6),
-            Text('Rp ${f.pricePerHour} / jam • Slot ${f.defaultSlotMinutes} menit'),
+            Text('${BookingFormat.rupiah(f.pricePerHour)} / jam • Slot ${f.defaultSlotMinutes} menit'),
           ],
         ),
       ),

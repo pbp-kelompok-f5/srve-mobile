@@ -10,6 +10,8 @@ import 'dart:convert';
 import 'package:srve_mobile/config/api.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/facility_list_page.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
+
 
 
 
@@ -42,8 +44,7 @@ class _UserMenuButtonState extends State<UserMenuButton> {
 
     try {
       final response =
-          await request.get("http://127.0.0.1:8000/accounts/ajax/profile/");
-
+        await request.get('${Env.baseUrl}/accounts/ajax/profile/');
       if (response['success'] == true) {
         setState(() {
           username = response["data"]["username"] ?? "User";
@@ -116,10 +117,10 @@ class _UserMenuButtonState extends State<UserMenuButton> {
         if (value == "logout") {
           final request =
               Provider.of<CookieRequest>(context, listen: false);
-
           await request.post(
-             "http://10.0.2.2:8000/accounts/ajax/logout/", {});
-
+            '${Env.baseUrl}/accounts/ajax/logout/',
+            {},
+          );
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const LandingPage()),
@@ -671,6 +672,17 @@ class HomeTabScreen extends StatelessWidget {
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   children: [
+                    _QuickActionCard(
+                      icon: Icons.list_alt,
+                      label: "My Bookings",
+                      color: const Color(0xFF8EA07A),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BookingListPage()),
+                        );
+                      },
+                    ),
                     _QuickActionCard(
                       icon: Icons.calendar_month,
                       label: "Book Court",

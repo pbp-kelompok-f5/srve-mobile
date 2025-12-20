@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 
+import '../providers/booking_provider.dart';
 import '../models/booking_item.dart';
-import '../services/booking_api_service.dart';
+import '../utils/formatters.dart';
+import 'package:srve_mobile/modules/profile_cello/screens/login_screen.dart';
 
 class BookingListPage extends StatefulWidget {
   const BookingListPage({super.key});
@@ -13,43 +15,43 @@ class BookingListPage extends StatefulWidget {
 }
 
 class _BookingListPageState extends State<BookingListPage> {
-  final _service = const BookingApiService();
-
-  bool _loading = true;
-  String? _error;
-  List<BookingItem> _items = [];
+  int _segment = 0; // 0 upcoming, 1 past
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _load();
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final request = context.read<CookieRequest>();
+      context.read<BookingProvider>().loadBookings(request);
+    });
   }
 
-  Future<void> _load() async {
-    final request = context.read<CookieRequest>();
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  List<BookingItem> _filtered(List<BookingItem> all) {
+    final today = DateTime.now();
+    final t0 = DateTime(today.year, today.month, today.day);
 
-    try {
-      final data = await _service.fetchBookings(request);
-      setState(() {
-        _items = data;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+    bool isUpcoming(BookingItem b) {
+      final d = BookingFormat.parseIsoDate(b.date);
+      if (d == null) return true;
+      return !d.isBefore(t0); // >= today
+    }
+
+    if (_segment == 0) {
+      return all.where(isUpcoming).toList();
+    } else {
+      return all.where((b) => !isUpcoming(b)).toList();
     }
   }
 
-  Future<void> _cancelBooking(BookingItem b) async {
+  Future<void> _cancelWithConfirm(BookingItem b) async {
     final request = context.read<CookieRequest>();
+    final prov = context.read<BookingProvider>();
 
-    // konfirmasi dulu
+    if (!request.loggedIn) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -64,90 +66,100 @@ class _BookingListPageState extends State<BookingListPage> {
 
     if (ok != true) return;
 
-    // Optimistic update: remove dulu, kalau gagal balikin
-    final idx = _items.indexWhere((x) => x.id == b.id);
-    final removed = b;
-    setState(() => _items.removeWhere((x) => x.id == b.id));
-
     try {
-      final success = await _service.cancelBooking(request, b.id);
+      await prov.cancelBooking(request, b.id);
       if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Booking canceled.")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Booking canceled.")));
     } catch (e) {
-      // rollback kalau gagal
       if (!mounted) return;
-      setState(() {
-        if (idx >= 0 && idx <= _items.length) {
-          _items.insert(idx, removed);
-        } else {
-          _items.add(removed);
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Cancel gagal: $e")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Cancel gagal: $e")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final request = context.read<CookieRequest>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Bookings"),
         actions: [
           IconButton(
-            onPressed: _load,
+            onPressed: () => context.read<BookingProvider>().loadBookings(request),
             icon: const Icon(Icons.refresh),
             tooltip: "Refresh",
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      const Text(
-                        "Gagal memuat booking.",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+      body: Consumer<BookingProvider>(
+        builder: (context, prov, _) {
+          final items = _filtered(prov.bookings);
+
+          return RefreshIndicator(
+            onRefresh: () => prov.loadBookings(request),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // segmented control sederhana
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text("Upcoming"),
+                        selected: _segment == 0,
+                        onSelected: (_) => setState(() => _segment = 0),
                       ),
-                      const SizedBox(height: 8),
-                      Text(_error!),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _load,
-                        child: const Text("Coba lagi"),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text("Past"),
+                        selected: _segment == 1,
+                        onSelected: (_) => setState(() => _segment = 1),
                       ),
-                    ],
-                  )
-                : _items.isEmpty
-                    ? ListView(
-                        children: const [
-                          SizedBox(height: 120),
-                          Center(child: Text("Belum ada booking.")),
-                        ],
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _items.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, i) {
-                          final b = _items[i];
-                          return _BookingCard(
-                            booking: b,
-                            onCancel: () => _cancelBooking(b),
-                          );
-                        },
-                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (prov.bookingsLoading) ...[
+                  const SizedBox(height: 40),
+                  const Center(child: CircularProgressIndicator()),
+                ] else if (prov.bookingsError != null) ...[
+                  Text(
+                    'Gagal memuat bookings:\n${prov.bookingsError}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => prov.loadBookings(request),
+                    child: const Text("Coba lagi"),
+                  ),
+                ] else if (items.isEmpty) ...[
+                  const SizedBox(height: 60),
+                  Center(child: Text(_segment == 0 ? "Belum ada booking upcoming." : "Tidak ada booking lampau.")),
+                ] else ...[
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, i) {
+                      final b = items[i];
+                      final cancelling = prov.isCancelling(b.id);
+
+                      return _BookingCard(
+                        booking: b,
+                        cancelling: cancelling,
+                        onCancel: cancelling ? null : () => _cancelWithConfirm(b),
+                      );
+                    },
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -155,10 +167,12 @@ class _BookingListPageState extends State<BookingListPage> {
 
 class _BookingCard extends StatelessWidget {
   final BookingItem booking;
-  final VoidCallback onCancel;
+  final bool cancelling;
+  final VoidCallback? onCancel;
 
   const _BookingCard({
     required this.booking,
+    required this.cancelling,
     required this.onCancel,
   });
 
@@ -176,19 +190,18 @@ class _BookingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            b.facilityName,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
+          Text(b.facilityName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 6),
-          Text("${b.date} • ${b.startTime}-${b.endTime}"),
+          Text("${b.date} • ${BookingFormat.hhmm(b.startTime)}-${BookingFormat.hhmm(b.endTime)}"),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
             child: OutlinedButton.icon(
               onPressed: onCancel,
-              icon: const Icon(Icons.cancel_outlined),
-              label: const Text("Cancel"),
+              icon: cancelling
+                  ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.cancel_outlined),
+              label: Text(cancelling ? "Canceling..." : "Cancel"),
             ),
           ),
         ],

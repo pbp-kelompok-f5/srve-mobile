@@ -1,17 +1,33 @@
 import 'dart:convert';
+
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:srve_mobile/config/api.dart';
 
 import '../models/facility.dart';
 import '../models/slot.dart';
 import '../models/booking_result.dart';
-
 import '../models/booking_item.dart';
-import 'dart:convert';
-
 
 class BookingApiService {
   const BookingApiService();
+
+  Map<String, dynamic> _ensureMap(dynamic res) {
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+
+    // Jika server balas HTML / text (mis. CSRF/session expire) bisa jadi String
+    if (res is String) {
+      final s = res.toLowerCase();
+      if (s.contains("<html") || s.contains("<!doctype")) {
+        throw Exception(
+          "Server mengirim HTML (kemungkinan session habis / CSRF). Coba login ulang.",
+        );
+      }
+      throw Exception("Unexpected string response: $res");
+    }
+
+    throw Exception("Unexpected response type: ${res.runtimeType}");
+  }
 
   Future<void> seedCsrf(CookieRequest request) async {
     await request.get(Env.bookingAliveApi);
@@ -19,9 +35,11 @@ class BookingApiService {
 
   Future<List<Facility>> fetchFacilities(CookieRequest request) async {
     final res = await request.get(Env.bookingFacilitiesApi);
+
     if (res is! List) {
       throw Exception('Facilities response bukan List: $res');
     }
+
     return res
         .whereType<Map>()
         .map((m) => Facility.fromJson(Map<String, dynamic>.from(m)))
@@ -52,10 +70,9 @@ class BookingApiService {
   Future<BookingResult> bookSlot(
     CookieRequest request, {
     required int facilityId,
-    required String dateIso,   // YYYY-MM-DD
+    required String dateIso, // YYYY-MM-DD
     required String startHHmm, // "HH:MM"
   }) async {
-    // Pastikan CSRF cookie ada
     await seedCsrf(request);
 
     final payload = {
@@ -69,16 +86,10 @@ class BookingApiService {
       jsonEncode(payload),
     );
 
-    if (res is Map<String, dynamic>) {
-      return BookingResult.fromJson(res);
-    }
-    if (res is Map) {
-      return BookingResult.fromJson(Map<String, dynamic>.from(res));
-    }
-
-    // kalau backend balas bukan JSON (harusnya nggak), kita bungkus jadi error
-    return BookingResult(ok: false, error: "Unexpected response: $res");
+    final m = _ensureMap(res);
+    return BookingResult.fromJson(m);
   }
+
 
   Future<List<BookingItem>> fetchBookings(CookieRequest request) async {
     final res = await request.get(Env.bookingBookingsApi);
@@ -93,36 +104,18 @@ class BookingApiService {
         .toList();
   }
 
-  Future<bool> cancelBooking(CookieRequest request, int bookingId) async {
+  Future<void> cancelBooking(CookieRequest request, int bookingId) async {
     await seedCsrf(request);
-
-    final payload = {"id": bookingId};
 
     final res = await request.postJson(
       Env.bookingCancelApi,
-      jsonEncode(payload),
+      jsonEncode({"id": bookingId}),
     );
 
-    // biasanya: {ok: true}
-    if (res is Map && res["ok"] == true) return true;
+    final m = _ensureMap(res);
 
-    // kalau error JSON: {ok:false, error:"..."}
-    if (res is Map && res["ok"] == false) {
-      final msg = res["error"]?.toString() ?? "Cancel gagal";
-      throw Exception(msg);
-    }
+    if (m["ok"] == true) return;
 
-    // fallback kalau response aneh
-    throw Exception("Unexpected response cancel: $res");
+    throw Exception(m["error"]?.toString() ?? "Cancel gagal");
   }
-
-
 }
-
-
-
-
-
-
-
-
