@@ -307,7 +307,12 @@ class HomeTabScreen extends StatelessWidget {
                       icon: Icons.people,
                       label: "Communities",
                       color: const Color(0xFF8EA07A),
-                      onTap: () {},
+                      onTap: () {
+                                  Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CommunitiesListPage()),
+                        );
+                      },
                     ),
                     _QuickActionCard(
                       icon: Icons.reviews,

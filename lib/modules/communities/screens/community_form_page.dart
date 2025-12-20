@@ -87,14 +87,14 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
 
     if (_selectedSport == null || _selectedSport!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih jenis olahraga.')),
+        const SnackBar(content: Text('Please choose a sport.')),
       );
       return;
     }
 
     if (_selectedSkillLevel == null || _selectedSkillLevel!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih skill level.')),
+        const SnackBar(content: Text('Choose a skill level.')),
       );
       return;
     }
@@ -146,8 +146,8 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
         SnackBar(
           content: Text(
             _isEditMode
-                ? 'Komunitas berhasil diperbarui.'
-                : 'Komunitas berhasil dibuat.',
+                ? 'Community successfully updated.'
+                : 'Community successfully created.',
           ),
         ),
       );
@@ -158,8 +158,8 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
         SnackBar(
           content: Text(
             errorMessage != null
-                ? 'Terjadi kesalahan: $errorMessage'
-                : 'Terjadi kesalahan. Coba lagi nanti.',
+                ? 'Error: $errorMessage'
+                : 'Error occurred while submitting the form. Please try again later.',
           ),
         ),
       );
@@ -179,7 +179,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Silakan login terlebih dahulu untuk membuat atau mengedit komunitas.',
+                  'Login required to create or edit a community.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -195,13 +195,13 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                     TextFormField(
                       controller: _nameController,
                       decoration: const InputDecoration(
-                        labelText: 'Nama Komunitas',
+                        labelText: 'Community Name',
                         border: OutlineInputBorder(),
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Nama komunitas tidak boleh kosong.';
+                          return 'Community Name is required.';
                         }
                         return null;
                       },
@@ -212,8 +212,8 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                     DropdownButtonFormField<String>(
                       value: _selectedSport,
                       decoration: const InputDecoration(
-                        labelText: 'Jenis Olahraga',
-                        hintText: 'Pilih jenis olahraga',
+                        labelText: 'Sport',
+                        hintText: 'Choose a sport',
                         border: OutlineInputBorder(),
                       ),
                       items: _sportOptions.map((sport) {
@@ -229,7 +229,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                       },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Jenis olahraga tidak boleh kosong.';
+                          return 'Sport is required';
                         }
                         return null;
                       },
@@ -246,7 +246,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                         child: DropdownButton<String>(
                           value: _selectedSkillLevel,
                           isExpanded: true,
-                          hint: const Text('Pilih skill level'),
+                          hint: const Text('Choose a skill level'),
                           items: _skillLevelOptions.map((level) {
                             return DropdownMenuItem<String>(
                               value: level,
@@ -267,7 +267,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                     TextFormField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
-                        labelText: 'Deskripsi',
+                        labelText: 'Description',
                         alignLabelWithHint: true,
                         border: OutlineInputBorder(),
                       ),
@@ -282,7 +282,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                       children: [
                         const Expanded(
                           child: Text(
-                            'Terbuka untuk umum',
+                            'Public',
                             style: TextStyle(fontSize: 16),
                           ),
                         ),
@@ -312,7 +312,7 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
                                 ),
                               )
                             : Text(
-                                _isEditMode ? 'Simpan Perubahan' : 'Buat Komunitas',
+                                _isEditMode ? 'Save Changes' : 'Create Community',
                               ),
                       ),
                     ),
