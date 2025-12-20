@@ -22,6 +22,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
   Community? _community; // kalau nanti mau refresh dari backend
   late CommunityService _communityService;
   bool _isDeleting = false;
+  bool _isJoining = false;
+  bool _isLeaving = false;
 
   @override
   void initState() {
@@ -106,6 +108,107 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
     }
   }
 
+  Future<void> _leaveCommunity() async {
+    if (_community == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Leave Community'),
+          content: const Text(
+            'Apakah kamu yakin ingin keluar dari komunitas ini?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Leave'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true) return;
+
+    setState(() {
+      _isLeaving = true;
+    });
+
+    bool success = false;
+    try {
+      success = await _communityService.leaveCommunity(_community!.slug);
+    } catch (_) {
+      success = false;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLeaving = false;
+      if (success) {
+        final newCount =
+            _community!.membersCount > 0 ? _community!.membersCount - 1 : 0;
+        _community = _community!.copyWith(
+          isMember: false,
+          membersCount: newCount,
+        );
+      }
+    });
+
+    if (success) {
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to leave community. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _joinCommunity() async {
+    if (_community == null) return;
+
+    setState(() {
+      _isJoining = true;
+    });
+
+    bool success = false;
+    try {
+      success = await _communityService.joinCommunity(_community!.slug);
+    } catch (_) {
+      success = false;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isJoining = false;
+    });
+
+    if (success) {
+      // update local state in case this page stays mounted
+      _community = _community!.copyWith(
+        isMember: true,
+        membersCount: _community!.membersCount + 1,
+      );
+
+      // Kembali ke list dengan sinyal refresh
+      Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to join community. Please try again.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
@@ -178,7 +281,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
               children: [
                 Chip(
                   label: Text(
-                    c.openToPublic ? 'Terbuka untuk umum' : 'Private',
+                    c.openToPublic ? 'Public' : 'Private',
                   ),
                   avatar: Icon(
                     c.openToPublic ? Icons.lock_open : Icons.lock,
@@ -187,27 +290,58 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                 ),
                 if (c.isAdmin)
                   const Chip(
-                    label: Text('Kamu Admin'),
+                    label: Text('You are Admin'),
                     avatar: Icon(Icons.shield, size: 18),
                   )
                 else if (c.isMember)
                   const Chip(
-                    label: Text('Kamu Anggota'),
+                    label: Text('You are a Member'),
                     avatar: Icon(Icons.check, size: 18),
                   ),
               ],
             ),
             const SizedBox(height: 24),
             Text(
-              'Deskripsi',
+              'Description',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             Text(
               c.description.isEmpty
-                  ? 'Belum ada deskripsi untuk komunitas ini.'
+                  ? 'No Description'
                   : c.description,
             ),
+            const SizedBox(height: 24),
+            if (request.loggedIn && !c.isAdmin && !c.isMember)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isJoining ? null : _joinCommunity,
+                  icon: _isJoining
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.group_add),
+                  label: Text(_isJoining ? 'Joining...' : 'Join Community'),
+                ),
+              ),
+            if (request.loggedIn && !c.isAdmin && c.isMember)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isLeaving ? null : _leaveCommunity,
+                  icon: _isLeaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.logout),
+                  label: Text(_isLeaving ? 'Leaving...' : 'Leave Community'),
+                ),
+              ),
           ],
         ),
       ),

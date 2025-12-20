@@ -67,6 +67,14 @@ class CommunityEndpoints {
   /// View: delete_community
   static String deleteCommunity(String slug) =>
       "$baseUrl/communities/$slug/delete/";
+
+  /// View: join_community (opsional, sesuaikan dengan urls.py)
+  static String joinCommunity(String slug) =>
+      "$baseUrl/communities/$slug/join/";
+
+  /// View: leave_community (opsional, sesuaikan dengan urls.py)
+  static String leaveCommunity(String slug) =>
+      "$baseUrl/communities/$slug/leave/";
 }
 
 /// Service wrapper biar pemanggilan ke backend rapi.
@@ -275,5 +283,72 @@ class CommunityService {
       skillLevel: community.skillLevel,
       openToPublic: community.openToPublic,
     );
+  }
+
+  /// Join a community (POST).
+  Future<bool> joinCommunity(String slug) async {
+    final headers = await _buildHeaders(request);
+    final response = await http.post(
+      Uri.parse(CommunityEndpoints.joinCommunity(slug)),
+      headers: headers,
+      body: const {},
+    );
+
+    final contentType = response.headers['content-type'] ?? '';
+    Map<String, dynamic>? jsonBody;
+    if (contentType.contains('application/json')) {
+      try {
+        jsonBody = json.decode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        // ignore decode error; treat via status code below
+      }
+    }
+
+    final isOkStatus =
+        response.statusCode >= 200 && response.statusCode < 300;
+    final isRedirect =
+        response.statusCode >= 300 && response.statusCode < 400;
+    final successFlag =
+        jsonBody == null ? true : _isSuccessResponse(jsonBody);
+
+    // Anggap 2xx/3xx sebagai sukses meski tidak ada JSON success flag
+    if (isOkStatus || isRedirect) {
+      return true;
+    }
+
+    return successFlag;
+  }
+
+  /// Leave a community (POST).
+  Future<bool> leaveCommunity(String slug) async {
+    final headers = await _buildHeaders(request);
+    final response = await http.post(
+      Uri.parse(CommunityEndpoints.leaveCommunity(slug)),
+      headers: headers,
+      body: const {},
+    );
+
+    final contentType = response.headers['content-type'] ?? '';
+    Map<String, dynamic>? jsonBody;
+    if (contentType.contains('application/json')) {
+      try {
+        jsonBody = json.decode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        // ignore decode error; treat via status code below
+      }
+    }
+
+    final isOkStatus =
+        response.statusCode >= 200 && response.statusCode < 300;
+    final isRedirect =
+        response.statusCode >= 300 && response.statusCode < 400;
+    final successFlag =
+        jsonBody == null ? true : _isSuccessResponse(jsonBody);
+
+    if (isOkStatus || isRedirect) {
+      return true;
+    }
+
+    return successFlag;
   }
 }
