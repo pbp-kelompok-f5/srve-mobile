@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import '../widgets/rating_slider.dart'; 
-import '../services/review_services.dart'; // Pastikan path ini benar
+import '../services/review_services.dart'; 
 
 class CommunityReviewForm extends StatefulWidget {
-  final int communityId;
+  final String communitySlug;
   final String communityName;
 
   const CommunityReviewForm({
     super.key, 
-    required this.communityId,
+    required this.communitySlug,
     required this.communityName
   });
 
@@ -21,11 +20,54 @@ class CommunityReviewForm extends StatefulWidget {
 class _CommunityReviewFormState extends State<CommunityReviewForm> {
   final _formKey = GlobalKey<FormState>();
   
+  // Default rating
   double _communication = 5.0;
   double _sportmanship = 5.0;
   double _playtime = 5.0;
   
   final TextEditingController _commentController = TextEditingController();
+
+  Widget _buildStarRating(String label, double currentValue, Function(double) onUpdate) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label, 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87)
+            ),
+            Text(
+              "${currentValue.toInt()} / 5", 
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF556B2F))
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start, 
+          children: List.generate(5, (index) {
+            int starIndex = index + 1;
+            return GestureDetector(
+              onTap: () {
+                onUpdate(starIndex.toDouble());
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Icon(
+                  starIndex <= currentValue ? Icons.star : Icons.star_border,
+                  color: const Color(0xFF556B2F),
+                  size: 36,
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,20 +121,22 @@ class _CommunityReviewFormState extends State<CommunityReviewForm> {
                       children: [
                         const Text("Leave a Review for", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                         Text(widget.communityName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF4CAF50))),
-                        const SizedBox(height: 20),
+                        
+                        const SizedBox(height: 30),
 
-                        RatingSlider(label: "Communication", value: _communication, onChanged: (val) => setState(() => _communication = val)),
-                        RatingSlider(label: "Sportsmanship", value: _sportmanship, onChanged: (val) => setState(() => _sportmanship = val)),
-                        RatingSlider(label: "Playtime", value: _playtime, onChanged: (val) => setState(() => _playtime = val)),
+                        // --- INPUT RATING BINTANG ---
+                        _buildStarRating("Communication", _communication, (val) => setState(() => _communication = val)),
+                        _buildStarRating("Sportmanship", _sportmanship, (val) => setState(() => _sportmanship = val)),
+                        _buildStarRating("Playtime", _playtime, (val) => setState(() => _playtime = val)),
 
                         const SizedBox(height: 10),
-                        const Text("Comment", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                        const Text("Comment", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 16)),
                         const SizedBox(height: 8),
 
                         TextFormField(
                           controller: _commentController,
                           decoration: InputDecoration(
-                            hintText: "Write your comment here",
+                            hintText: "Write your comment here...",
                             filled: true,
                             fillColor: Colors.white, 
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -115,29 +159,43 @@ class _CommunityReviewFormState extends State<CommunityReviewForm> {
                             ),
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
-                                // --- MENGGUNAKAN SERVICE ---
                                 try {
                                   final response = await ReviewService().createCommunityReview(
                                     request, 
-                                    widget.communityId, 
+                                    widget.communitySlug, 
                                     {
                                       'communication': _communication,
-                                      'sportsmanship': _sportmanship,
+                                      // PERBAIKAN: Key pakai 'sportsmanship' (ada s), Value pakai _sportmanship
+                                      'sportsmanship': _sportmanship, 
                                       'playtime': _playtime,
                                       'comment': _commentController.text,
                                     }
                                   );
 
                                   if (context.mounted) {
-                                    if (response['success'] == true) {
-                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Your review has been saved")));
-                                      Navigator.pop(context);
+                                    // PERBAIKAN: Cek response lebih fleksibel
+                                    if (response['status'] == 'success' || response['success'] == true) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Your review has been saved"),
+                                          backgroundColor: Colors.green,
+                                        )
+                                      );
+                                      // Kembali ke halaman detail dengan sinyal refresh
+                                      Navigator.pop(context, true); 
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? "Gagal.")));
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(response['message'] ?? "Gagal menyimpan review."),
+                                          backgroundColor: Colors.red,
+                                        )
+                                      );
                                     }
                                   }
                                 } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                                  }
                                 }
                               }
                             },

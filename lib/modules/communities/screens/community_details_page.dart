@@ -1,5 +1,3 @@
-// lib/communities/screens/community_detail_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +8,11 @@ import '../widgets/left_drawer.dart';
 import '../screens/community_form_page.dart';
 import '../widgets/navigation_helpers.dart';
 import '../screens/my_communities_page.dart';
+
+// --- IMPORT SCREEN REVIEW ---
+import '../../reviews/screens/create_community_review.dart';
+import '../../reviews/screens/edit_community_review.dart';
+import '../../reviews/screens/delete_community_review.dart';
 
 class CommunityDetailPage extends StatefulWidget {
   final Community community;
@@ -23,11 +26,14 @@ class CommunityDetailPage extends StatefulWidget {
 }
 
 class _CommunityDetailPageState extends State<CommunityDetailPage> {
-  Community? _community; // kalau nanti mau refresh dari backend
+  Community? _community;
   late CommunityService _communityService;
   bool _isDeleting = false;
   bool _isJoining = false;
   bool _isLeaving = false;
+  
+  // State untuk Review
+  bool _hasUserReviewed = false; 
 
   @override
   void initState() {
@@ -35,6 +41,89 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
     _community = widget.community;
     _communityService = CommunityService(context.read<CookieRequest>());
   }
+
+  // --- LOGIKA REVIEW ---
+  
+  Future<void> _handleReviewButton() async {
+    // 1. CEK: Apakah user adalah Admin/Pemilik Komunitas?
+    // Jika iya, tidak boleh review komunitas sendiri.
+    if (_community!.isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You cannot review your own community"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 2. CEK: Apakah user sudah pernah review sebelumnya?
+    if (_hasUserReviewed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You already reviewed this community"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Jika lolos kedua cek di atas, baru buka form review
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommunityReviewForm(
+          communitySlug: _community!.slug,
+          communityName: _community!.name,
+        ),
+      ),
+    );
+
+    // Refresh halaman jika user berhasil buat review
+    if (result == true && mounted) {
+      setState(() {}); 
+    }
+  }
+
+  Future<void> _navigateToEditReview(dynamic review) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditCommunityReviewForm(
+          reviewId: review['id'],
+          // Gunakan tryParse agar aman
+          initialCommunication: double.tryParse(review['communication'].toString()) ?? 0.0,
+          initialSportsmanship: double.tryParse(review['sportsmanship'].toString()) ?? 0.0,
+          initialPlaytime: double.tryParse(review['playtime'].toString()) ?? 0.0,
+          initialComment: review['comment'],
+          communityName: _community!.name,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _navigateToDeleteReview(dynamic review) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DeleteCommunityReviewPage(
+          reviewId: review['id'],
+          communityName: _community!.name,
+          commentPreview: review['comment'],
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      setState(() {});
+    }
+  }
+
+  // --- LOGIKA DELETE COMMUNITY ---
 
   Future<void> _deleteCommunity() async {
     final confirm = await showDialog<bool>(
@@ -66,8 +155,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
       _isDeleting = true;
     });
 
-    final success =
-        await _communityService.deleteCommunity(_community!.slug);
+    final success = await _communityService.deleteCommunity(_community!.slug);
 
     if (!mounted) return;
 
@@ -79,7 +167,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Komunitas berhasil dihapus.')),
       );
-      Navigator.pop(context, true); // balik ke list & trigger refresh
+      Navigator.pop(context, true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Gagal menghapus komunitas.')),
@@ -88,12 +176,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
   }
 
   Future<void> _goToEdit() async {
-    // kita pakai CommunityFormPage yang sudah kamu punya
-    // importnya sesuaikan path-mu
-    // misal: '../screens/community_form_page.dart'
-    // tapi di sini aku tulis relative jelas:
-
-    // ignore: use_build_context_synchronously
     final shouldRefresh = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -107,11 +189,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
     );
 
     if (shouldRefresh == true && mounted) {
-      // optional: kalau kamu punya endpoint detail, bisa fetch ulang
-      // final updated = await _communityService.fetchCommunityDetail(_community!.slug);
-      // if (updated != null) setState(() => _community = updated);
-
-      setState(() {}); // minimal redraw dengan data lama
+      setState(() {});
     }
   }
 
@@ -228,6 +306,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
     final c = _community!;
+    
+    final String reviewUrl = 'http://10.0.2.2:8000/reviews/community/${c.slug}/reviews-list/';
 
     return Scaffold(
       appBar: AppBar(
@@ -392,6 +472,239 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                 ),
               ),
           ],
+      body: SingleChildScrollView( 
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                c.name,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    Icons.sports,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(c.sport),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.speed, size: 18),
+                  const SizedBox(width: 6),
+                  Text(c.skillLevel),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.group,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text('${c.membersCount} anggota'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [
+                  Chip(
+                    label: Text(
+                      c.openToPublic ? 'Terbuka untuk umum' : 'Private',
+                    ),
+                    avatar: Icon(
+                      c.openToPublic ? Icons.lock_open : Icons.lock,
+                      size: 18,
+                    ),
+                  ),
+                  if (c.isAdmin)
+                    const Chip(
+                      label: Text('Kamu Admin'),
+                      avatar: Icon(Icons.shield, size: 18),
+                    )
+                  else if (c.isMember)
+                    const Chip(
+                      label: Text('Kamu Anggota'),
+                      avatar: Icon(Icons.check, size: 18),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Deskripsi',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                c.description.isEmpty
+                    ? 'Belum ada deskripsi untuk komunitas ini.'
+                    : c.description,
+              ),
+
+              // --- BAGIAN REVIEW ---
+              const SizedBox(height: 32),
+              const Divider(thickness: 2),
+              const SizedBox(height: 16),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Reviews',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: _handleReviewButton,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF556B2F), 
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Write a Review"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // FutureBuilder untuk Fetch Reviews
+              FutureBuilder(
+                future: request.get(reviewUrl),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  } else {
+                    var reviews = snapshot.data;
+                    
+                    if (reviews == null || (reviews as List).isEmpty) {
+                       WidgetsBinding.instance.addPostFrameCallback((_) {
+                         if(_hasUserReviewed && mounted) setState(() => _hasUserReviewed = false);
+                       });
+                      return const Text("No reviews yet.", style: TextStyle(color: Colors.grey));
+                    }
+
+                    // Cek apakah user sudah review
+                    bool foundUserReview = false;
+                    final currentUser = request.jsonData.isNotEmpty ? request.jsonData['username'] : null;
+                    
+                    for (var r in reviews) {
+                      if (r['user'] == currentUser) {
+                        foundUserReview = true;
+                        break;
+                      }
+                    }
+
+                    if (_hasUserReviewed != foundUserReview) {
+                       WidgetsBinding.instance.addPostFrameCallback((_) {
+                         if (mounted) setState(() => _hasUserReviewed = foundUserReview);
+                       });
+                    }
+
+                    return ListView.builder(
+                      shrinkWrap: true, 
+                      physics: const NeverScrollableScrollPhysics(), 
+                      itemCount: reviews.length,
+                      itemBuilder: (context, index) {
+                        final review = reviews[index];
+                        final String user = review['user'] ?? 'Anonymous';
+                        final String comment = review['comment'] ?? '';
+                        
+                        // Parse Double (Safe Mode)
+                        final double rating = double.tryParse(review['rating'].toString()) ?? 0.0;
+                        final double commScore = double.tryParse(review['communication'].toString()) ?? 0.0;
+                        final double sportsScore = double.tryParse(review['sportsmanship'].toString()) ?? 0.0;
+                        final double playScore = double.tryParse(review['playtime'].toString()) ?? 0.0;
+                        
+                        final bool isOwner = (currentUser != null && user == currentUser);
+
+                        return Card(
+                          color: const Color(0xFFF2F0E4), 
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(user, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Row(
+                                      children: [
+                                        Text(rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+                                        const Icon(Icons.star, size: 16, color: Colors.amber),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(review['created_at'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                                const SizedBox(height: 8),
+                                Text('"$comment"', style: const TextStyle(fontStyle: FontStyle.italic)),
+                                const SizedBox(height: 12),
+                                
+                                // Detail Scores
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text("Communication: $commScore", style: const TextStyle(fontSize: 11)),
+                                    Text("Sportsmanship: $sportsScore", style: const TextStyle(fontSize: 11)),
+                                    Text("Playtime: $playScore", style: const TextStyle(fontSize: 11)),
+                                  ],
+                                ),
+
+                             
+                                if (isOwner) ...[
+                                  const SizedBox(height: 8),
+                                  const Divider(color: Colors.black12), // Garis pemisah tipis
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end, // Taruh di kanan
+                                    children: [
+                                      TextButton.icon(
+                                        onPressed: () => _navigateToEditReview(review),
+                                        icon: const Icon(Icons.edit, size: 16, color: Color.fromARGB(255, 0, 33, 4)),
+                                        label: const Text("Edit", style: TextStyle(color: Color.fromARGB(255, 0, 33, 4), fontSize: 13)),
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      TextButton.icon(
+                                        onPressed: () => _navigateToDeleteReview(review),
+                                        icon: const Icon(Icons.delete, size: 16, color: Colors.red),
+                                        label: const Text("Delete", style: TextStyle(color: Colors.red, fontSize: 13)),
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                ]
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

@@ -4,14 +4,15 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 class ReviewService {
   // Base URL server Django kamu
   final String baseUrl = "http://10.0.2.2:8000";
-
+  
   // ==================== COMMUNITY ====================
 
   // Create Community Review
-  Future<Map<String, dynamic>> createCommunityReview(CookieRequest request, int communityId, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createCommunityReview(CookieRequest request, String communitySlug, Map<String, dynamic> data) async {
+    // URL SUDAH DIPERBAIKI: Mengarah ke /reviews/community/...
     final response = await request.postJson(
-      "$baseUrl/reviews/community/$communityId/create/",
-      jsonEncode(data),
+        "$baseUrl/reviews/community/$communitySlug/create-flutter/", 
+        jsonEncode(data),
     );
     return response;
   }
@@ -27,7 +28,6 @@ class ReviewService {
 
   // Delete Community Review
   Future<dynamic> deleteCommunityReview(CookieRequest request, int reviewId) async {
-    // Delete biasanya tidak butuh body JSON, dan return-nya bisa jadi bukan JSON
     return await request.post("$baseUrl/reviews/delete/community/$reviewId/", {});
   }
 
