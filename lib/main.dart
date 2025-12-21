@@ -3,12 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'modules/base/screens/landing_page.dart';
 import 'modules/profile_cello/providers/profile_provider.dart';
+import 'modules/booking_erich/providers/booking_provider.dart';
+
+
 void main() {
   runApp(
     MultiProvider(
       providers: [
         Provider(create: (_) => CookieRequest()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => BookingProvider()),
       ],
       child: const MyApp(),
       )

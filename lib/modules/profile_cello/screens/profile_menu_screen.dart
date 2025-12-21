@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
 import '../../base/screens/home_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
@@ -98,7 +99,7 @@ class ProfileMenuScreen extends StatelessWidget {
               context,
               icon: Icons.edit,
               title: "Edit Profile",
-              page: const EditProfileScreen(),
+              page: EditProfileScreen(),
             ),
 
             _menuItem(

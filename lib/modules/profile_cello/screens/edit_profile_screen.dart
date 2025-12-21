@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:srve_mobile/config/api.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,19 +15,27 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
 
   bool isLoading = true;
 
-  // Fields
+  // Profile fields
   String bio = "";
-  String? skillLevel;           
+  String? skillLevel;
   String preferredLocation = "";
   String instagram = "";
   String? dateOfBirth;
+  String? profilePictureUrl;
 
-  final dobController = TextEditingController(); 
+  File? _imageFile;
 
-  final List<String> skillOptions = ["Beginner", "Intermediate", "Advanced"];
+  final dobController = TextEditingController();
+
+  final List<String> skillOptions = [
+    "Beginner",
+    "Intermediate",
+    "Advanced",
+  ];
 
   @override
   void initState() {
@@ -37,43 +49,100 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  // ================= LOAD PROFILE =================
   Future<void> _loadProfile() async {
-  final request = Provider.of<CookieRequest>(context, listen: false);
+    final request = Provider.of<CookieRequest>(context, listen: false);
 
   try {
     final response =
         await request.get("https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/");
 
-    if (response["success"] == true) {
-      final data = response["data"];
+      if (response["success"] == true) {
+        final data = response["data"];
 
-      final rawSkill = (data["skill_level"] ?? "").toString().toLowerCase();
+        final rawSkill =
+            (data["skill_level"] ?? "").toString().toLowerCase();
 
-      String? normalizedSkill;
+        String? normalizedSkill;
+        if (rawSkill == "beginner") normalizedSkill = "Beginner";
+        if (rawSkill == "intermediate") normalizedSkill = "Intermediate";
+        if (rawSkill == "advanced") normalizedSkill = "Advanced";
 
-      if (rawSkill == "beginner") normalizedSkill = "Beginner";
-      else if (rawSkill == "intermediate") normalizedSkill = "Intermediate";
-      else if (rawSkill == "advanced") normalizedSkill = "Advanced";
-
-      setState(() {
-        bio = data["bio"] ?? "";
-        skillLevel = normalizedSkill;      
-        preferredLocation = data["preferred_location"] ?? "";
-        instagram = data["instagram_username"] ?? "";
-        dateOfBirth = data["date_of_birth"];
-
-        dobController.text = dateOfBirth ?? "";
-
-        isLoading = false;
-      });
-    }
+        setState(() {
+          bio = data["bio"] ?? "";
+          skillLevel = normalizedSkill;
+          preferredLocation = data["preferred_location"] ?? "";
+          instagram = data["instagram_username"] ?? "";
+          dateOfBirth = data["date_of_birth"];
+          profilePictureUrl = data["profile_picture"];
+          dobController.text = dateOfBirth ?? "";
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      debugPrint("Error loading profile: $e");
+      debugPrint("Load profile error: $e");
       setState(() => isLoading = false);
     }
   }
 
+  // ================= PICK IMAGE =================
+  Future<void> _pickImage() async {
+    final XFile? picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
 
+    if (picked != null) {
+      setState(() {
+        _imageFile = File(picked.path);
+      });
+    }
+  }
+
+  // ================= UPLOAD PHOTO =================
+  Future<void> _uploadProfilePicture() async {
+    if (_imageFile == null) return;
+
+    final request = Provider.of<CookieRequest>(context, listen: false);
+
+    final uri = Uri.parse(
+      "${Env.baseUrl}/accounts/ajax/profile/update-photo/",
+    );
+
+    final multipartRequest = http.MultipartRequest("POST", uri);
+
+    multipartRequest.files.add(
+      await http.MultipartFile.fromPath(
+        "profile_picture",
+        _imageFile!.path,
+      ),
+    );
+
+    multipartRequest.headers["cookie"] =
+        request.cookies.entries
+            .map((e) => "${e.key}=${e.value.value}")
+            .join("; ");
+
+    final response = await multipartRequest.send();
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile picture updated")),
+      );
+      _imageFile = null;
+      await _loadProfile();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to upload photo")),
+      );
+    }
+  }
+
+  // ================= SAVE PROFILE =================
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -97,18 +166,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (!mounted) return;
 
-    if (response['success'] == true) {
+    if (response["success"] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Profile updated successfully")),
+        const SnackBar(content: Text("Profile updated")),
       );
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? "Failed to update profile")),
+        SnackBar(
+          content: Text(response["message"] ?? "Update failed"),
+        ),
       );
     }
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,95 +192,160 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Bio
-                    TextFormField(
-                      initialValue: bio,
-                      decoration: const InputDecoration(labelText: "Bio"),
-                      maxLines: 2,
-                      onSaved: (v) => bio = v ?? "",
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Skill Level Dropdown
-                    DropdownButtonFormField<String>(
-                      value: skillLevel,  // <-- FIX: null allowed
-                      decoration: const InputDecoration(labelText: "Skill Level"),
-                      items: skillOptions
-                          .map((e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(e),
-                              ))
-                          .toList(),
-                      validator: (value) =>
-                          value == null ? "Skill level is required" : null,
-                      onChanged: (v) => setState(() => skillLevel = v),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Location
-                    TextFormField(
-                      initialValue: preferredLocation,
-                      decoration: const InputDecoration(labelText: "Preferred Location"),
-                      onSaved: (v) => preferredLocation = v ?? "",
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Instagram
-                    TextFormField(
-                      initialValue: instagram,
-                      decoration: const InputDecoration(labelText: "Instagram Username"),
-                      onSaved: (v) => instagram = v ?? "",
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Date of Birth
-                    TextFormField(
-                      controller: dobController,
-                      readOnly: true,
-                      decoration: const InputDecoration(labelText: "Date of Birth"),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime(2000),
-                          firstDate: DateTime(1950),
-                          lastDate: DateTime.now(),
-                        );
-
-                        if (picked != null) {
-                          dateOfBirth =
-                              "${picked.year}-${picked.month}-${picked.day}";
-
-                          dobController.text = dateOfBirth!; // <-- FIX
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6B7E5A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+              child: Column(
+                children: [
+                  // ===== AVATAR =====
+                  Center(
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundColor: const Color(0xFFD4D3C9),
+                            backgroundImage: _imageFile != null
+                                ? FileImage(_imageFile!)
+                                : (profilePictureUrl != null &&
+                                        profilePictureUrl!.isNotEmpty
+                                    ? NetworkImage(
+                                        "${Env.baseUrl}$profilePictureUrl")
+                                    : null) as ImageProvider?,
+                            child: (_imageFile == null &&
+                                    (profilePictureUrl == null ||
+                                        profilePictureUrl!.isEmpty))
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 60,
+                                    color: Color(0xFF6B7E5A),
+                                  )
+                                : null,
                           ),
-                        ),
-                        onPressed: _saveProfile,
-                        child: const Text(
-                          "Save Changes",
-                          style: TextStyle(fontSize: 16),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF6B7E5A),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  if (_imageFile != null)
+                    TextButton(
+                      onPressed: _uploadProfilePicture,
+                      child: const Text("Upload Photo"),
+                    ),
+
+                  Text(
+                    "Tap avatar to change photo",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ===== FORM =====
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          initialValue: bio,
+                          decoration:
+                              const InputDecoration(labelText: "Bio"),
+                          maxLines: 2,
+                          onSaved: (v) => bio = v ?? "",
+                        ),
+                        const SizedBox(height: 16),
+
+                        DropdownButtonFormField<String>(
+                          value: skillLevel,
+                          decoration:
+                              const InputDecoration(labelText: "Skill Level"),
+                          items: skillOptions
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e),
+                                ),
+                              )
+                              .toList(),
+                          validator: (v) =>
+                              v == null ? "Skill level required" : null,
+                          onChanged: (v) => setState(() => skillLevel = v),
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          initialValue: preferredLocation,
+                          decoration: const InputDecoration(
+                              labelText: "Preferred Location"),
+                          onSaved: (v) => preferredLocation = v ?? "",
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          initialValue: instagram,
+                          decoration: const InputDecoration(
+                              labelText: "Instagram Username"),
+                          onSaved: (v) => instagram = v ?? "",
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: dobController,
+                          readOnly: true,
+                          decoration: const InputDecoration(
+                              labelText: "Date of Birth"),
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime(2000),
+                              firstDate: DateTime(1950),
+                              lastDate: DateTime.now(),
+                            );
+
+                            if (picked != null) {
+                              dateOfBirth =
+                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                              dobController.text = dateOfBirth!;
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 30),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color(0xFF6B7E5A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _saveProfile,
+                            child: const Text("Save Changes"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
     );

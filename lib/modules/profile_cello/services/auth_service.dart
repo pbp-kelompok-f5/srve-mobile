@@ -1,4 +1,5 @@
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
 
 class AuthService {
   // 🌐 Base URL Configuration
@@ -14,30 +15,25 @@ class AuthService {
     String password,
   ) async {
     try {
-      await request.get("$baseUrl/csrf/"); 
+      await request.get("${Env.baseUrl}/csrf/");
 
       final response = await request.post(
-        "$baseUrl/accounts/ajax/login/",
+        "${Env.baseUrl}/accounts/ajax/login/",
         {"username": username, "password": password},
       );
-
-      print('Login Response: $response');
 
       return {
         'success': response['success'] ?? false,
         'message': response['message'] ?? 'Login failed',
         'redirect_url': response['redirect_url'] ?? '/',
       };
-
     } catch (e) {
-      print('Login Error: $e');
       return {
         'success': false,
         'message': 'Connection error: ${e.toString()}',
       };
     }
   }
-
 
   // 📝 Register
   static Future<Map<String, dynamic>> register(
@@ -48,7 +44,7 @@ class AuthService {
   ) async {
     try {
       final response = await request.post(
-        '$baseUrl/accounts/ajax/register/',
+        "${Env.baseUrl}/accounts/ajax/register/",
         {
           'username': username,
           'password1': password1,
@@ -56,23 +52,12 @@ class AuthService {
         },
       );
 
-      // Debug print
-      print('Register Response: $response');
-
-      if (response is Map) {
-        return {
-          'success': response['success'] ?? false,
-          'message': response['message'] ?? 'Registration failed',
-          'redirect_url': response['redirect_url'] ?? '/',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Invalid response format from server',
-        };
-      }
+      return {
+        'success': response['success'] ?? false,
+        'message': response['message'] ?? 'Registration failed',
+        'redirect_url': response['redirect_url'] ?? '/',
+      };
     } catch (e) {
-      print('Register Error: $e');
       return {
         'success': false,
         'message': 'Connection error: ${e.toString()}',
@@ -84,25 +69,15 @@ class AuthService {
   static Future<Map<String, dynamic>> logout(CookieRequest request) async {
     try {
       final response = await request.post(
-        '$baseUrl/accounts/ajax/logout/',
+        "${Env.baseUrl}/accounts/ajax/logout/",
         {},
       );
 
-      print('Logout Response: $response');
-
-      if (response is Map) {
-        return {
-          'success': response['success'] ?? false,
-          'redirect_url': response['redirect_url'] ?? '/',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': 'Invalid response format from server',
-        };
-      }
+      return {
+        'success': response['success'] ?? false,
+        'redirect_url': response['redirect_url'] ?? '/',
+      };
     } catch (e) {
-      print('Logout Error: $e');
       return {
         'success': false,
         'message': 'Logout error: ${e.toString()}',
@@ -115,13 +90,15 @@ class AuthService {
     return request.loggedIn;
   }
 
-  // 👤 Get current user info (if needed)
-  static Future<Map<String, dynamic>?> getUserProfile(CookieRequest request) async {
+  // 👤 Get current user info
+  static Future<Map<String, dynamic>?> getUserProfile(
+    CookieRequest request,
+  ) async {
     try {
-      final response = await request.get('$baseUrl/accounts/users/me/');
-      return response;
+      return await request.get(
+        "${Env.baseUrl}/accounts/ajax/profile/",
+      );
     } catch (e) {
-      print('Get Profile Error: $e');
       return null;
     }
   }

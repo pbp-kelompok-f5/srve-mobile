@@ -1,9 +1,6 @@
 // lib/services/community_service.dart
-
+import 'package:srve_mobile/config/api.dart';
 import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 
@@ -11,11 +8,7 @@ import '../models/community.dart';
 
 // Gunakan host yang sesuai untuk emulator / platform:
 // - iOS simulator / web / desktop: localhost / 127.0.0.1
-final String baseUrl = () {
-  if (kIsWeb) return "http://127.0.0.1:8000";
-  if (Platform.isAndroid) return "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
-  return "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
-}();
+final String baseUrl = "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
 
 /// Pastikan kita punya CSRF token sebelum POST ke endpoint Django form-based.
 Future<String?> _ensureCsrfToken(CookieRequest request) async {
