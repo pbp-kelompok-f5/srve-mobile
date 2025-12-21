@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await request.login(
-        '${Env.baseUrl}/accounts/ajax/login/',
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/login/",
         {
           "username": _username,
           "password": _password,

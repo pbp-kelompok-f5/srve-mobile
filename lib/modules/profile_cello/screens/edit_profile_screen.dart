@@ -53,9 +53,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadProfile() async {
     final request = Provider.of<CookieRequest>(context, listen: false);
 
-    try {
-      final response =
-          await request.get("${Env.baseUrl}/accounts/ajax/profile/");
+  try {
+    final response =
+        await request.get("https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/");
 
       if (response["success"] == true) {
         final data = response["data"];
@@ -152,7 +152,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final request = Provider.of<CookieRequest>(context, listen: false);
 
     final response = await request.post(
-      "${Env.baseUrl}/accounts/ajax/profile/update/",
+      "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/update/",  // <-- FIX endpoint
       {
         "bio": bio,
         "skill_level": skillLevel ?? "",

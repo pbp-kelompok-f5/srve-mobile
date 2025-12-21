@@ -10,7 +10,7 @@ class ProfileService {
 
     try {
       final response = await request.get(
-        "${Env.baseUrl}/accounts/ajax/profile/",
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/",
       );
       if (response["success"] == true) {
         return UserProfileModel.fromJson(response["data"]);

@@ -2,16 +2,8 @@ import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class Env {
-  // Base URL yang otomatis menyesuaikan platform
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8000'; // ✅ Chrome Web di Mac
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.0.2.2:8000'; // ✅ Android emulator
-      default:
-        return 'http://127.0.0.1:8000'; // ✅ macOS app / iOS simulator
-    }
-  }
+  // Backend base URL
+  static const String baseUrl = 'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/';
 
   // Threads
   static String get threadsListApi => '$baseUrl/threads/api/';
