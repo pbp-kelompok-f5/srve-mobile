@@ -147,15 +147,19 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
 
   // ✅ Widget banner image
   Widget _facilityBanner(Facility f) {
-    // gunakan resolvedImageUrl (absolute/relative aman)
     final url = f.resolvedImageUrl;
+
+    // ✅ Batasi tinggi banner supaya tidak "meledak" di Web (layout lebar)
+    final w = MediaQuery.of(context).size.width;
+    final bannerHeight = w >= 900 ? 260.0 : (w >= 600 ? 220.0 : 180.0);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
+        child: SizedBox(
+          height: bannerHeight,
+          width: double.infinity,
           child: url == null
               ? Container(
                   color: Colors.black12,
@@ -197,6 +201,9 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
       ),
     );
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {
