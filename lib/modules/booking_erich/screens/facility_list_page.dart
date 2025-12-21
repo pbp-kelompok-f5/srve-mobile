@@ -7,26 +7,6 @@ import '../models/facility.dart';
 import '../utils/formatters.dart';
 import 'facility_detail_page.dart';
 
-enum FacilitySort {
-  nameAsc,
-  nameDesc,
-  priceAsc,
-  priceDesc,
-}
-
-String facilitySortLabel(FacilitySort s) {
-  switch (s) {
-    case FacilitySort.nameAsc:
-      return "Name (A–Z)";
-    case FacilitySort.nameDesc:
-      return "Name (Z–A)";
-    case FacilitySort.priceAsc:
-      return "Price (Low → High)";
-    case FacilitySort.priceDesc:
-      return "Price (High → Low)";
-  }
-}
-
 class FacilityListPage extends StatefulWidget {
   const FacilityListPage({super.key});
 
@@ -37,7 +17,6 @@ class FacilityListPage extends StatefulWidget {
 class _FacilityListPageState extends State<FacilityListPage> {
   String _query = '';
   String _sportFilter = 'all'; // all | tennis | badminton | padel
-  FacilitySort _sort = FacilitySort.nameAsc; // default: A–Z
 
   @override
   void initState() {
@@ -48,68 +27,18 @@ class _FacilityListPageState extends State<FacilityListPage> {
     });
   }
 
-  /// Filter berdasarkan sport + query (name/city)
   List<Facility> _applyFilter(List<Facility> data) {
     final q = _query.trim().toLowerCase();
 
     return data.where((f) {
       final sportOk = _sportFilter == 'all' || f.sport == _sportFilter;
-      if (!sportOk) return false;
 
+      if (!sportOk) return false;
       if (q.isEmpty) return true;
 
       final hay = '${f.name} ${f.city}'.toLowerCase();
       return hay.contains(q);
     }).toList();
-  }
-
-  /// Filter + Sort (Nama/Harga)
-  List<Facility> _applyFilterAndSort(List<Facility> data) {
-    final out = _applyFilter(data);
-
-    out.sort((a, b) {
-      switch (_sort) {
-        case FacilitySort.nameAsc:
-          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-        case FacilitySort.nameDesc:
-          return b.name.toLowerCase().compareTo(a.name.toLowerCase());
-        case FacilitySort.priceAsc:
-          return a.pricePerHour.compareTo(b.pricePerHour);
-        case FacilitySort.priceDesc:
-          return b.pricePerHour.compareTo(a.pricePerHour);
-      }
-    });
-
-    return out;
-  }
-
-  PopupMenuButton<FacilitySort> _buildSortMenu() {
-    PopupMenuItem<FacilitySort> item(FacilitySort v) {
-      final selected = _sort == v;
-      return PopupMenuItem(
-        value: v,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(facilitySortLabel(v)),
-            if (selected) const Icon(Icons.check, size: 18),
-          ],
-        ),
-      );
-    }
-
-    return PopupMenuButton<FacilitySort>(
-      icon: const Icon(Icons.sort),
-      tooltip: "Sort",
-      onSelected: (v) => setState(() => _sort = v),
-      itemBuilder: (context) => [
-        item(FacilitySort.nameAsc),
-        item(FacilitySort.nameDesc),
-        const PopupMenuDivider(),
-        item(FacilitySort.priceAsc),
-        item(FacilitySort.priceDesc),
-      ],
-    );
   }
 
   @override
@@ -121,18 +50,15 @@ class _FacilityListPageState extends State<FacilityListPage> {
         title: const Text('Book Court'),
         actions: [
           IconButton(
-            onPressed: () => context
-                .read<BookingProvider>()
-                .loadFacilities(request, force: true),
+            onPressed: () => context.read<BookingProvider>().loadFacilities(request, force: true),
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
           ),
-          _buildSortMenu(), // ✅ tombol sort
         ],
       ),
       body: Consumer<BookingProvider>(
         builder: (context, prov, _) {
-          final filtered = _applyFilterAndSort(prov.facilities); // ✅ sudah disort
+          final filtered = _applyFilter(prov.facilities);
 
           return RefreshIndicator(
             onRefresh: () => prov.loadFacilities(request, force: true),
@@ -144,9 +70,7 @@ class _FacilityListPageState extends State<FacilityListPage> {
                   decoration: InputDecoration(
                     hintText: 'Search by name/city...',
                     prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -180,15 +104,6 @@ class _FacilityListPageState extends State<FacilityListPage> {
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 10),
-
-                // Sort label kecil (biar user tahu lagi mode apa)
-                Text(
-                  "Sort: ${facilitySortLabel(_sort)}",
-                  style: const TextStyle(color: Colors.black54),
-                ),
-
                 const SizedBox(height: 16),
 
                 if (prov.facilitiesLoading) ...[
@@ -219,8 +134,7 @@ class _FacilityListPageState extends State<FacilityListPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                FacilityDetailPage(facility: filtered[i]),
+                            builder: (_) => FacilityDetailPage(facility: filtered[i]),
                           ),
                         );
                       },
@@ -266,6 +180,55 @@ class _FacilityCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Widget _thumb(BuildContext context) {
+    final url = facility.resolvedImageUrl;
+
+    if (url == null) {
+      return Container(
+        width: 110,
+        height: 76,
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.image_not_supported_outlined, color: Colors.black38),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        width: 110,
+        height: 76,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) {
+          return Container(
+            width: 110,
+            height: 76,
+            color: Colors.black12,
+            alignment: Alignment.center,
+            child: const Icon(Icons.broken_image_outlined, color: Colors.black38),
+          );
+        },
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            width: 110,
+            height: 76,
+            color: Colors.black12,
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = facility;
@@ -280,20 +243,26 @@ class _FacilityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.black12),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              f.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}',
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${BookingFormat.rupiah(f.pricePerHour)} / jam • Slot ${f.defaultSlotMinutes} menit',
+            _thumb(context),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    f.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}'),
+                  const SizedBox(height: 6),
+                  Text('${BookingFormat.rupiah(f.pricePerHour)} / jam • Slot ${f.defaultSlotMinutes} menit'),
+                ],
+              ),
             ),
           ],
         ),

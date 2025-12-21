@@ -6,10 +6,8 @@ import '../models/facility.dart';
 import '../models/slot.dart';
 import '../providers/booking_provider.dart';
 import '../utils/formatters.dart';
-import 'booking_list_page.dart';
 import 'package:srve_mobile/modules/profile_cello/screens/login_screen.dart';
 import 'booking_success_page.dart';
-
 
 class FacilityDetailPage extends StatefulWidget {
   final Facility facility;
@@ -66,7 +64,6 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
     return endMin <= startMin;
   }
 
-
   Future<void> _loadSlots({bool force = false}) async {
     final request = context.read<CookieRequest>();
     final prov = context.read<BookingProvider>();
@@ -98,7 +95,6 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
     }
   }
 
-  
   Future<void> _bookSelected() async {
     final request = context.read<CookieRequest>();
     final prov = context.read<BookingProvider>();
@@ -111,32 +107,24 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
       return;
     }
 
-    final chosenSlot = _selectedSlot;
-    if (chosenSlot == null) return;
-
-    // (opsional tapi bagus) double-check kalau slot sudah jadi invalid/past
-    if (_isPastSlot(_selectedDate, chosenSlot) || _isInvalidCrossDayOrReverse(chosenSlot)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Slot sudah tidak valid. Silakan pilih slot lain.")),
-      );
-      setState(() => _selectedSlot = null);
-      return;
-    }
+    final slot = _selectedSlot;
+    if (slot == null) return;
 
     final res = await prov.bookSlot(
       request,
       facilityId: widget.facility.id,
       dateIso: _dateIso,
-      startHHmm: chosenSlot.start,
+      startHHmm: slot.start,
     );
 
-    // refresh slot (biar slot ke-update)
+    // refresh slots setelah booking (berhasil/gagal)
     prov.clearSlotCacheForFacilityDay(widget.facility.id, _dateIso);
     await _loadSlots(force: true);
 
     if (!mounted) return;
 
     if (res.ok) {
+      final slot2 = slot;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -146,7 +134,7 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
             sportDisplay: widget.facility.sportDisplay,
             city: widget.facility.city,
             dateIso: _dateIso,
-            slotLabel: chosenSlot.label,
+            slotLabel: slot2.label,
             pricePerHour: widget.facility.pricePerHour,
           ),
         ),
@@ -156,6 +144,66 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
+
+  // ✅ Widget banner image
+  Widget _facilityBanner(Facility f) {
+    final url = f.resolvedImageUrl;
+
+    // ✅ Batasi tinggi banner supaya tidak "meledak" di Web (layout lebar)
+    final w = MediaQuery.of(context).size.width;
+    final bannerHeight = w >= 900 ? 260.0 : (w >= 600 ? 220.0 : 180.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: bannerHeight,
+          width: double.infinity,
+          child: url == null
+              ? Container(
+                  color: Colors.black12,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Colors.black38,
+                    size: 40,
+                  ),
+                )
+              : Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.black12,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.black38,
+                        size: 40,
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: Colors.black12,
+                      alignment: Alignment.center,
+                      child: const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +229,20 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ gambar facility
+          _facilityBanner(f),
+          const SizedBox(height: 10),
+
           // Info
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(f.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  f.name,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 6),
                 Text("${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}"),
                 const SizedBox(height: 6),
@@ -277,7 +332,7 @@ class _FacilityDetailPageState extends State<FacilityDetailPage> {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       color: disabled ? Colors.black38 : Colors.black87,
-                                      decoration: s.booked ? TextDecoration.lineThrough : null,
+                                      decoration: disabled ? TextDecoration.lineThrough : null,
                                     ),
                                   ),
                                 ),
