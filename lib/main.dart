@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'modules/base/screens/landing_page.dart';
+import 'modules/profile_cello/providers/profile_provider.dart';
+import 'modules/booking_erich/providers/booking_provider.dart';
 
 // --- IMPORT MODUL AUTH & PROVIDERS (PENTING DARI MASTER) ---
 import 'package:srve_mobile/modules/base/screens/landing_page.dart';

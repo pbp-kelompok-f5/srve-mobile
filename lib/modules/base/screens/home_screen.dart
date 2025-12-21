@@ -328,8 +328,18 @@ class _HomeScreenState extends State<HomeScreen> {
     HomeTabScreen(),
     CommunitiesListPage(),
     ThreadsHomePage(),     
+<<<<<<< HEAD
+<<<<<<< HEAD
+    MatchListPage(),
+    PlaceholderWidget(text: "Courts"),
+=======
     PlaceholderWidget(text: "Matches"),
     BookingListPage(),
+>>>>>>> 3dcf149b0cff62eafb729a76235a26a0a43da40d
+=======
+    PlaceholderWidget(text: "Matches"),
+    BookingListPage(),
+>>>>>>> 9afea11e3ec7824d2da94426e9dbf4bb0897d5e9
   ];
   void _openBookingSmokeTest(BuildContext context) {
   final request = context.read<CookieRequest>();
