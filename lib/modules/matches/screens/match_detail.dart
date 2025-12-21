@@ -41,7 +41,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
     try {
       final request = context.read<CookieRequest>();
       final response = await request.get(
-        'http://10.0.2.2:8000/match/${widget.match.pk}/submatches/',
+        'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/${widget.match.pk}/submatches/',
       );
 
       debugPrint("Submatches response: $response");
@@ -82,7 +82,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
 
                 try {
                   final response = await request.postJson(
-                    'http://10.0.2.2:8000/match/${widget.match.pk}/generate-pairings-flutter/',
+                    'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/${widget.match.pk}/generate-pairings-flutter/',
                     jsonEncode({'match_type': matchType}),
                   );
 
@@ -137,7 +137,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
   Future<void> _updateScore(CookieRequest request, int submatchId, String team) async {
     try {
       final response = await request.postJson(
-        'http://10.0.2.2:8000/match/submatch/$submatchId/update-score-flutter/',
+        'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/submatch/$submatchId/update-score-flutter/',
         jsonEncode({'team': team}),
       );
 
@@ -190,7 +190,7 @@ class _MatchDetailPageState extends State<MatchDetailPage> {
                 setState(() => isLoading = true);
 
                 final response = await request.post(
-                  'http://10.0.2.2:8000/match/${widget.match.pk}/end-match-flutter/',
+                  'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/${widget.match.pk}/end-match-flutter/',
                   {},
                 );
 

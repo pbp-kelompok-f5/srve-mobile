@@ -30,7 +30,7 @@ class _MatchListPageState extends State<MatchListPage> {
   Future<void> _loadCurrentUser() async {
     try {
       final request = context.read<CookieRequest>();
-      final response = await request.get("http://10.0.2.2:8000/accounts/ajax/profile/");
+      final response = await request.get("https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/");
       
       if (response != null && response is Map && response['success'] == true) {
         if (response['data'] != null && response['data'] is Map) {
@@ -56,7 +56,7 @@ class _MatchListPageState extends State<MatchListPage> {
   Future<List<Match>> fetchMatch(CookieRequest request) async {
     // Gunakan 10.0.2.2 untuk Android Emulator
     try {
-      final response = await request.get('http://10.0.2.2:8000/match/json/');
+      final response = await request.get('https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/json/');
       var data = response;
       List<Match> listMatch = [];
       
@@ -84,7 +84,7 @@ class _MatchListPageState extends State<MatchListPage> {
   Future<void> joinMatch(CookieRequest request, int matchId) async {
     try {
       final response = await request.post(
-        'http://10.0.2.2:8000/match/$matchId/join-flutter/',
+        'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/$matchId/join-flutter/',
         {},
       );
 
