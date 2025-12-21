@@ -1,14 +1,16 @@
+import 'package:srve_mobile/config/api.dart';
+
 class Facility {
   final int id;
   final String name;
-  final String sport;          // "tennis" | "badminton" | "padel"
-  final String sportDisplay;   // "Tennis" | ...
+  final String sport;
+  final String sportDisplay;
   final String city;
   final String address;
   final bool indoor;
   final int pricePerHour;
   final int defaultSlotMinutes;
-  final String? imageUrl;      // opsional (kalau backend mengirim)
+  final String? imageUrl; 
 
   Facility({
     required this.id,
@@ -23,32 +25,26 @@ class Facility {
     this.imageUrl,
   });
 
-  static int _toInt(dynamic v, {int fallback = 0}) {
-    if (v is int) return v;
-    if (v is double) return v.toInt();
-    if (v is String) return int.tryParse(v) ?? fallback;
-    return fallback;
-  }
-
-  static bool _toBool(dynamic v, {bool fallback = false}) {
-    if (v is bool) return v;
-    if (v is String) return v.toLowerCase() == 'true';
-    if (v is int) return v != 0;
-    return fallback;
+  String? get resolvedImageUrl {
+    final u = imageUrl;
+    if (u == null || u.trim().isEmpty) return null;
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    if (u.startsWith('/')) return '${Env.baseUrl}$u';
+    return '${Env.baseUrl}/$u';
   }
 
   factory Facility.fromJson(Map<String, dynamic> json) {
     return Facility(
-      id: _toInt(json['id']),
+      id: (json['id'] as num).toInt(),
       name: (json['name'] ?? '').toString(),
       sport: (json['sport'] ?? '').toString(),
-      sportDisplay: (json['sport_display'] ?? json['sport'] ?? '').toString(),
+      sportDisplay: (json['sport_display'] ?? json['sportDisplay'] ?? '').toString(),
       city: (json['city'] ?? '').toString(),
       address: (json['address'] ?? '').toString(),
-      indoor: _toBool(json['indoor']),
-      pricePerHour: _toInt(json['price_per_hour']),
-      defaultSlotMinutes: _toInt(json['default_slot_minutes'], fallback: 60),
-      imageUrl: json['image_url']?.toString(),
+      indoor: (json['indoor'] ?? false) as bool,
+      pricePerHour: (json['price_per_hour'] as num).toInt(),
+      defaultSlotMinutes: (json['default_slot_minutes'] as num).toInt(),
+      imageUrl: (json['image_url'] ?? '').toString().isEmpty ? null : (json['image_url']).toString(),
     );
   }
 }
