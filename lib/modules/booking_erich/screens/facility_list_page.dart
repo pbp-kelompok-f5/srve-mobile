@@ -180,6 +180,55 @@ class _FacilityCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Widget _thumb(BuildContext context) {
+    final url = facility.resolvedImageUrl;
+
+    if (url == null) {
+      return Container(
+        width: 110,
+        height: 76,
+        decoration: BoxDecoration(
+          color: Colors.black12,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.image_not_supported_outlined, color: Colors.black38),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        width: 110,
+        height: 76,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) {
+          return Container(
+            width: 110,
+            height: 76,
+            color: Colors.black12,
+            alignment: Alignment.center,
+            child: const Icon(Icons.broken_image_outlined, color: Colors.black38),
+          );
+        },
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            width: 110,
+            height: 76,
+            color: Colors.black12,
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final f = facility;
@@ -194,14 +243,27 @@ class _FacilityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.black12),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(f.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 6),
-            Text('${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}'),
-            const SizedBox(height: 6),
-            Text('${BookingFormat.rupiah(f.pricePerHour)} / jam • Slot ${f.defaultSlotMinutes} menit'),
+            _thumb(context),
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    f.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('${f.sportDisplay} • ${f.city} • ${f.indoor ? "Indoor" : "Outdoor"}'),
+                  const SizedBox(height: 6),
+                  Text('${BookingFormat.rupiah(f.pricePerHour)} / jam • Slot ${f.defaultSlotMinutes} menit'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
