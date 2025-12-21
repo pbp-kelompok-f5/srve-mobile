@@ -65,6 +65,7 @@ class _FacilityReviewFormState extends State<FacilityReviewForm> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF2F0E4), 
                     borderRadius: BorderRadius.circular(20),
+                    // ignore: deprecated_member_use
                     boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))]
                   ),
                   padding: const EdgeInsets.all(24.0),
