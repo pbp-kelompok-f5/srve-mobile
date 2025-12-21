@@ -36,7 +36,7 @@ class ReviewService {
   // Create Facility Review
   Future<Map<String, dynamic>> createFacilityReview(CookieRequest request, int facilityId, Map<String, dynamic> data) async {
     final response = await request.postJson(
-      "$baseUrl/reviews/facility/$facilityId/create/",
+      "$baseUrl/reviews/facility/$facilityId/create-flutter/",
       jsonEncode(data),
     );
     return response;
