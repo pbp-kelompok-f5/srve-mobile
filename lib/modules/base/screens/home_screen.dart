@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
 import '../../profile_cello/screens/profile_screen.dart';
 import 'landing_page.dart';
 import '../../profile_cello/screens/profile_menu_screen.dart';
 import 'package:srve_mobile/modules/threads/screens/threads_home_page.dart';
 import '../../communities/screens/communities_list_page.dart';
+import 'dart:convert';
+import 'package:srve_mobile/config/api.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/facility_list_page.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
+import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
+
+
+
 
 
 class HomeScreen extends StatefulWidget {
@@ -36,8 +45,7 @@ class _UserMenuButtonState extends State<UserMenuButton> {
 
     try {
       final response =
-          await request.get("http://127.0.0.1:8000/accounts/ajax/profile/");
-
+        await request.get('${Env.baseUrl}/accounts/ajax/profile/');
       if (response['success'] == true) {
         setState(() {
           username = response["data"]["username"] ?? "User";
@@ -48,58 +56,49 @@ class _UserMenuButtonState extends State<UserMenuButton> {
     }
   }
 
-  @override
+  String getInitial() {
+     if (username.isEmpty) return "U";
+        return username[0].toUpperCase();
+  }
+
+ @override
   Widget build(BuildContext context) {
-    return PopupMenuButton(
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          children: [
-            Text(
-              username,
-              style: const TextStyle(
-                color: Color(0xFF6B7E5A),
-                fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTapDown: (details) async {
+        final value = await showMenu<String>(
+          context: context,
+          position: RelativeRect.fromLTRB(
+            details.globalPosition.dx - 150,
+            details.globalPosition.dy + 8,
+            0,
+            0,
+          ),
+          items: const [
+            PopupMenuItem(
+              value: "profile",
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline),
+                  SizedBox(width: 8),
+                  Text("Profile"),
+                ],
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6B7E5A)),
+            PopupMenuItem(
+              value: "logout",
+              child: Row(
+                children: [
+                  Icon(Icons.logout),
+                  SizedBox(width: 8),
+                  Text("Logout"),
+                ],
+              ),
+            ),
           ],
-        ),
-      ),
+        );
 
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: "profile",
-          child: Row(
-            children: [
-              Icon(Icons.person_outline),
-              SizedBox(width: 8),
-              Text("Profile"),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: "logout",
-          child: Row(
-            children: [
-              Icon(Icons.logout),
-              SizedBox(width: 8),
-              Text("Logout"),
-            ],
-          ),
-        ),
-      ],
+        if (!mounted) return;
 
-      onSelected: (value) async {
         if (value == "profile") {
           Navigator.push(
             context,
@@ -108,12 +107,10 @@ class _UserMenuButtonState extends State<UserMenuButton> {
         }
 
         if (value == "logout") {
-          final request =
-              Provider.of<CookieRequest>(context, listen: false);
+          final request = Provider.of<CookieRequest>(context, listen: false);
+          await request.post("${Env.baseUrl}/accounts/ajax/logout/", {});
 
-          await request.post(
-             " http://10.0.2.2:8000/accounts/ajax/logout/", {});
-
+          if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const LandingPage()),
@@ -121,9 +118,208 @@ class _UserMenuButtonState extends State<UserMenuButton> {
           );
         }
       },
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: const Color(0xFF6B7E5A),
+        child: Text(
+          getInitial(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
     );
   }
 }
+
+void openBookingSmokeTest(BuildContext context) {
+  final request = context.read<CookieRequest>();
+
+  String log = '';
+  int? facilityId;
+  int? lastBookingId;
+
+  String tomorrowIso() {
+    final d = DateTime.now().add(const Duration(days: 1));
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  void append(StateSetter setModalState, String s) {
+    setModalState(() => log = '$log\n$s');
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Booking API Smoke Test (Fase 0)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            append(setModalState, 'GET alive: ${Env.bookingAliveApi}');
+                            final res = await request.get(Env.bookingAliveApi);
+                            append(setModalState, 'alive => $res');
+                          } catch (e) {
+                            append(setModalState, 'alive ERROR => $e');
+                          }
+                        },
+                        child: const Text('Alive'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            append(setModalState, 'GET facilities: ${Env.bookingFacilitiesApi}');
+                            final res = await request.get(Env.bookingFacilitiesApi);
+
+                            if (res is List && res.isNotEmpty && res.first is Map) {
+                              facilityId = (res.first as Map)['id'] as int?;
+                              append(setModalState, 'facilities count=${res.length}');
+                              append(setModalState, 'picked facilityId=$facilityId');
+                              append(setModalState, 'sample => ${jsonEncode(res.first)}');
+                            } else {
+                              append(setModalState, 'Unexpected facilities => $res');
+                            }
+                          } catch (e) {
+                            append(setModalState, 'facilities ERROR => $e');
+                          }
+                        },
+                        child: const Text('Facilities'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (facilityId == null) {
+                            append(setModalState, '⚠️ Tekan Facilities dulu (facilityId null)');
+                            return;
+                          }
+                          try {
+                            final dateIso = tomorrowIso();
+                            final url = Env.bookingAvailabilityApi(facilityId!, dateIso);
+                            append(setModalState, 'GET availability: $url');
+
+                            final res = await request.get(url);
+                            append(setModalState, 'availability => ${jsonEncode(res).substring(0, 200)}...');
+                          } catch (e) {
+                            append(setModalState, 'availability ERROR => $e');
+                          }
+                        },
+                        child: const Text('Availability'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (facilityId == null) {
+                            append(setModalState, '⚠️ Tekan Facilities dulu (facilityId null)');
+                            return;
+                          }
+                          try {
+                            await request.get(Env.bookingAliveApi); // seed CSRF
+
+                            final body = {
+                              "facility": facilityId,
+                              "date": tomorrowIso(),
+                              "start": "10:00",
+                            };
+
+                            append(setModalState, 'POST book: ${Env.bookingBookApi}');
+                            append(setModalState, 'payload => $body');
+
+                            final res = await request.postJson(
+                              Env.bookingBookApi,
+                              jsonEncode(body),
+                            );
+
+                            append(setModalState, 'book => $res');
+
+                            if (res is Map && res['ok'] == true) {
+                              lastBookingId = res['booking_id'];
+                              append(setModalState, '✅ booking_id=$lastBookingId');
+                            }
+                          } catch (e) {
+                            append(setModalState, 'book ERROR => $e');
+                          }
+                        },
+                        child: const Text('Book 10:00'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (lastBookingId == null) {
+                            append(setModalState, '⚠️ Book dulu (lastBookingId null)');
+                            return;
+                          }
+                          try {
+                            await request.get(Env.bookingAliveApi); // seed CSRF
+
+                            final body = {"id": lastBookingId};
+                            append(setModalState, 'POST cancel: ${Env.bookingCancelApi}');
+                            append(setModalState, 'payload => $body');
+
+                            final res = await request.postJson(
+                              Env.bookingCancelApi,
+                              jsonEncode(body),
+                            );
+
+                            append(setModalState, 'cancel => $res');
+                          } catch (e) {
+                            append(setModalState, 'cancel ERROR => $e');
+                          }
+                        },
+                        child: const Text('Cancel last'),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Text('Log:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        log.isEmpty ? '(belum ada)' : log,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
@@ -133,8 +329,195 @@ class _HomeScreenState extends State<HomeScreen> {
     CommunitiesListPage(),
     ThreadsHomePage(),     
     PlaceholderWidget(text: "Matches"),
-    PlaceholderWidget(text: "Courts"),
+    BookingListPage(),
   ];
+  void _openBookingSmokeTest(BuildContext context) {
+  final request = context.read<CookieRequest>();
+
+  String log = '';
+  int? facilityId;
+  int? lastBookingId;
+
+  String tomorrowIso() {
+    final d = DateTime.now().add(const Duration(days: 1));
+    return '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+  }
+
+  void append(StateSetter setModalState, String s) {
+    setModalState(() => log = '$log\n$s');
+  }
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: SizedBox(
+              height: MediaQuery.of(ctx).size.height * 0.75,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Booking API Smoke Test (Fase 0)',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            append(setModalState, 'GET alive: ${Env.bookingAliveApi}');
+                            final res = await request.get(Env.bookingAliveApi);
+                            append(setModalState, 'alive => $res');
+                          } catch (e) {
+                            append(setModalState, 'alive ERROR => $e');
+                          }
+                        },
+                        child: const Text('Alive'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          try {
+                            append(setModalState, 'GET facilities: ${Env.bookingFacilitiesApi}');
+                            final res = await request.get(Env.bookingFacilitiesApi);
+
+                            if (res is List && res.isNotEmpty && res.first is Map) {
+                              facilityId = (res.first as Map)['id'] as int?;
+                              append(setModalState, 'facilities count=${res.length}');
+                              append(setModalState, 'picked facilityId=$facilityId');
+                              append(setModalState, 'sample => ${jsonEncode(res.first)}');
+                            } else {
+                              append(setModalState, 'Unexpected facilities => $res');
+                            }
+                          } catch (e) {
+                            append(setModalState, 'facilities ERROR => $e');
+                          }
+                        },
+                        child: const Text('Facilities'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (facilityId == null) {
+                            append(setModalState, '⚠️ Tekan Facilities dulu (facilityId null)');
+                            return;
+                          }
+                          try {
+                            final dateIso = tomorrowIso();
+                            final url = Env.bookingAvailabilityApi(facilityId!, dateIso);
+                            append(setModalState, 'GET availability: $url');
+
+                            final res = await request.get(url);
+                            append(setModalState, 'availability => ${jsonEncode(res).substring(0, 200)}...');
+                          } catch (e) {
+                            append(setModalState, 'availability ERROR => $e');
+                          }
+                        },
+                        child: const Text('Availability'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (facilityId == null) {
+                            append(setModalState, '⚠️ Tekan Facilities dulu (facilityId null)');
+                            return;
+                          }
+                          try {
+                            // penting: seed CSRF cookie dulu
+                            await request.get(Env.bookingAliveApi);
+
+                            final body = {
+                              "facility": facilityId,
+                              "date": tomorrowIso(),
+                              "start": "10:00",
+                            };
+
+                            append(setModalState, 'POST book: ${Env.bookingBookApi}');
+                            append(setModalState, 'payload => $body');
+
+                            final res = await request.postJson(
+                              Env.bookingBookApi,
+                              jsonEncode(body),
+                            );
+
+                            append(setModalState, 'book => $res');
+
+                            if (res is Map && res['ok'] == true) {
+                              lastBookingId = res['booking_id'];
+                              append(setModalState, '✅ booking_id=$lastBookingId');
+                            }
+                          } catch (e) {
+                            append(setModalState, 'book ERROR => $e');
+                          }
+                        },
+                        child: const Text('Book 10:00'),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () async {
+                          if (lastBookingId == null) {
+                            append(setModalState, '⚠️ Book dulu (lastBookingId null)');
+                            return;
+                          }
+                          try {
+                            await request.get(Env.bookingAliveApi);
+
+                            final body = {"id": lastBookingId};
+                            append(setModalState, 'POST cancel: ${Env.bookingCancelApi}');
+                            append(setModalState, 'payload => $body');
+
+                            final res = await request.postJson(
+                              Env.bookingCancelApi,
+                              jsonEncode(body),
+                            );
+
+                            append(setModalState, 'cancel => $res');
+                          } catch (e) {
+                            append(setModalState, 'cancel ERROR => $e');
+                          }
+                        },
+                        child: const Text('Cancel last'),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+                  const Text('Log:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        log.isEmpty ? '(belum ada)' : log,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -142,21 +525,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "SRVE",
-          style: TextStyle(
-            color: Color(0xFF6B7E5A),
-            fontWeight: FontWeight.bold,
-          ),
+      title: const Text(
+        "SRVE",
+        style: TextStyle(
+          color: Color(0xFF6B7E5A),
+          fontWeight: FontWeight.bold,
         ),
-        backgroundColor: const Color(0xFFD4D3C9),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: UserMenuButton(),
-          ),
-        ],
       ),
+      backgroundColor: const Color(0xFFD4D3C9),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: UserMenuButton(),
+        ),
+      ],
+    ),
 
       body: _pages[_selectedIndex],
 
@@ -292,10 +675,26 @@ class HomeTabScreen extends StatelessWidget {
                   crossAxisSpacing: 12,
                   children: [
                     _QuickActionCard(
+                      icon: Icons.list_alt,
+                      label: "My Bookings",
+                      color: const Color(0xFF8EA07A),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BookingListPage()),
+                        );
+                      },
+                    ),
+                    _QuickActionCard(
                       icon: Icons.calendar_month,
                       label: "Book Court",
                       color: const Color(0xFF6B7E5A),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const FacilityListPage()),
+                        );
+                      },
                     ),
                     _QuickActionCard(
                       icon: Icons.sports,
@@ -307,12 +706,7 @@ class HomeTabScreen extends StatelessWidget {
                       icon: Icons.people,
                       label: "Communities",
                       color: const Color(0xFF8EA07A),
-                      onTap: () {
-                                  Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CommunitiesListPage()),
-                        );
-                      },
+                      onTap: () {},
                     ),
                     _QuickActionCard(
                       icon: Icons.reviews,

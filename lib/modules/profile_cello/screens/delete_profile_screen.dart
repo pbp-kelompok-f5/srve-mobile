@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:srve_mobile/config/api.dart';
 import '../../base/screens/landing_page.dart';
 
 class DeleteProfileScreen extends StatefulWidget {
@@ -20,7 +21,7 @@ class _DeleteProfileScreenState extends State<DeleteProfileScreen> {
 
     try {
       final response = await request.post(
-        "http://10.0.2.2:8000/accounts/ajax/profile/delete/",
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/delete/",
         {},
       );
 
