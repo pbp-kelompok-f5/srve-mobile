@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:srve_mobile/modules/matches/models/match.dart';
 import 'package:srve_mobile/modules/matches/screens/match_form.dart';
 import 'package:srve_mobile/widgets/left_drawer.dart'; // Pastikan path ini benar sesuai struktur teman
+import 'package:srve_mobile/modules/matches/screens/match_edit_form.dart';
+import 'package:srve_mobile/modules/matches/screens/match_detail.dart';
 
 class MatchListPage extends StatefulWidget {
   const MatchListPage({super.key});
@@ -16,18 +18,67 @@ class _MatchListPageState extends State<MatchListPage> {
   // Warna Tema SRVE
   final Color primaryGreen = const Color(0xFF6B7E5A);
   final Color bgBeige = const Color(0xFFF5F5F0);
+  int? currentUserId;
+  bool isLoadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final request = context.read<CookieRequest>();
+      final response = await request.get("http://10.0.2.2:8000/accounts/ajax/profile/");
+      
+      if (response != null && response is Map && response['success'] == true) {
+        if (response['data'] != null && response['data'] is Map) {
+          final userId = response['data']['id'];
+          if (userId != null) {
+            setState(() {
+              currentUserId = userId as int;
+              isLoadingUser = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading current user: $e");
+    }
+    
+    setState(() {
+      isLoadingUser = false;
+    });
+  }
 
   Future<List<Match>> fetchMatch(CookieRequest request) async {
     // Gunakan 10.0.2.2 untuk Android Emulator
-    final response = await request.get('http://10.0.2.2:8000/match/json/');
-    var data = response;
-    List<Match> listMatch = [];
-    for (var d in data) {
-      if (d != null) {
-        listMatch.add(Match.fromJson(d));
+    try {
+      final response = await request.get('http://10.0.2.2:8000/match/json/');
+      var data = response;
+      List<Match> listMatch = [];
+      
+      // Check if response is valid list
+      if (data is! List) {
+        throw Exception("Invalid response format from server");
       }
+      
+      for (var d in data) {
+        if (d != null) {
+          try {
+            listMatch.add(Match.fromJson(d));
+          } catch (e) {
+            // Skip invalid match records
+            continue;
+          }
+        }
+      }
+      return listMatch;
+    } catch (e) {
+      throw Exception("Failed to fetch matches: $e");
     }
-    return listMatch;
   }
 
   Future<void> joinMatch(CookieRequest request, int matchId) async {
@@ -213,6 +264,9 @@ class _MatchListPageState extends State<MatchListPage> {
     int joined = match.fields.players.length;
     int max = match.fields.maxPlayers;
     bool isFull = joined >= max;
+    
+    // CEK APAKAH HOST
+    bool isHost = match.fields.isHost;
 
     return Card(
       elevation: 2,
@@ -262,6 +316,7 @@ class _MatchListPageState extends State<MatchListPage> {
                   ],
                 ),
                 const Divider(height: 24),
+                // ... (Kode Lokasi dan Tanggal sama seperti sebelumnya) ...
                 Row(
                   children: [
                     const Icon(Icons.location_on, size: 16, color: Color(0xFF6B7E5A)),
@@ -280,6 +335,11 @@ class _MatchListPageState extends State<MatchListPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                
+                // TOMBOL AKSI
+                // Di dalam method _buildCard, ganti bagian button action:
+
+                // TOMBOL AKSI
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -296,17 +356,48 @@ class _MatchListPageState extends State<MatchListPage> {
                         ),
                       ],
                     ),
+                    
+                    // LOGIKA TOMBOL DIPERBAIKI
                     if (!isHistory)
-                      ElevatedButton(
-                        onPressed: isFull ? null : () => joinMatch(request, match.pk),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6B7E5A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        child: Text(isFull ? "FULL" : "JOIN MATCH", style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
-                      ),
+                      isHost
+                          ? ElevatedButton.icon(
+                              onPressed: () async {
+                                // Navigate to Match Detail Page as HOST
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MatchDetailPage(
+                                      match: match,
+                                      currentUserId: currentUserId ?? 0,
+                                      isHost: true,
+                                    ),
+                                  ),
+                                );
+                                setState(() {}); // Refresh list after returning
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF8B7355), // Brown color for manage
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
+                              icon: const Icon(Icons.settings, size: 16),
+                              label: const Text("MANAGE", style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins', fontSize: 12)),
+                            )
+                          : ElevatedButton(
+                              onPressed: isFull ? null : () => joinMatch(request, match.pk),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF6B7E5A),
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.grey[400],
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              child: Text(
+                                isFull ? "FULL" : "JOIN MATCH", 
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins', fontSize: 12)
+                              ),
+                            ),
                   ],
                 ),
               ],

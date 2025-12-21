@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
-
-// --- IMPORT MODUL AUTHENTICATION ---
+import 'modules/base/screens/landing_page.dart';
+import 'modules/profile_cello/providers/profile_provider.dart';
+import 'modules/booking_erich/providers/booking_provider.dart';
 import 'package:srve_mobile/modules/profile_cello/screens/login_screen.dart';
 
 // --- IMPORT MODUL FITUR LAIN ---
@@ -16,7 +17,16 @@ import 'package:srve_mobile/modules/matches/screens/match_list.dart';
 import 'package:srve_mobile/modules/communities/widgets/left_drawer.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider(create: (_) => CookieRequest()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => BookingProvider()),
+      ],
+      child: const MyApp(),
+      )
+  );
 }
 
 class MyApp extends StatelessWidget {

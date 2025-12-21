@@ -1,3 +1,4 @@
+// Timpa seluruh isi file dengan ini, atau tambahkan field isHost
 import 'dart:convert';
 
 List<Match> matchFromJson(String str) => List<Match>.from(json.decode(str).map((x) => Match.fromJson(x)));
@@ -38,6 +39,7 @@ class Fields {
     String jenisOlahraga;
     int maxPlayers;
     List<int> players;
+    bool isHost; // TAMBAHAN FIELD BARU
 
     Fields({
         required this.host,
@@ -49,6 +51,7 @@ class Fields {
         required this.jenisOlahraga,
         required this.maxPlayers,
         required this.players,
+        required this.isHost, // TAMBAHAN
     });
 
     factory Fields.fromJson(Map<String, dynamic> json) => Fields(
@@ -56,11 +59,12 @@ class Fields {
         title: json["title"] ?? "Untitled Match",
         tanggal: json["tanggal"] != null ? DateTime.parse(json["tanggal"]) : DateTime.now(),
         lokasi: json["lokasi"],
-        isCompleted: json["is_completed"],
-        createdAt: DateTime.parse(json["created_at"]),
+        isCompleted: json["is_completed"] ?? false,
+        createdAt: json["created_at"] != null ? DateTime.parse(json["created_at"]) : DateTime.now(),
         jenisOlahraga: json["jenis_olahraga"],
         maxPlayers: json["max_players"],
         players: List<int>.from(json["players"].map((x) => x)),
+        isHost: json["is_host"] ?? false, // BACA DARI JSON, DEFAULT FALSE
     );
 
     Map<String, dynamic> toJson() => {
@@ -73,5 +77,6 @@ class Fields {
         "jenis_olahraga": jenisOlahraga,
         "max_players": maxPlayers,
         "players": List<dynamic>.from(players.map((x) => x)),
+        "is_host": isHost,
     };
 }
