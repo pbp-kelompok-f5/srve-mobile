@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:srve_mobile/modules/communities/widgets/navigation_helpers.dart';
 
 // --- MODELS & SERVICES ---
 // Pastikan path import ini sesuai dengan struktur project kamu
@@ -210,8 +211,11 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
   @override
   Widget build(BuildContext context) {
     final request = context.watch<CookieRequest>();
-    // Pastikan URL ini benar
+    
+    // URL API Reviews
     final String reviewUrl = 'http://10.0.2.2:8000/reviews/community/${_community.slug}/reviews-list/';
+    // Debugging: Cek terminal untuk melihat apakah slug terisi dengan benar
+    print("DEBUG URL: $reviewUrl");
 
     return Scaffold(
       appBar: AppBar(
@@ -415,17 +419,51 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                     const Divider(color: Colors.black12, height: 1),
                     const SizedBox(height: 16),
 
-                    // LIST REVIEW
+                    // LIST REVIEW (PERBAIKAN ERROR HANDLING DISINI)
                     FutureBuilder(
                       future: request.get(reviewUrl),
                       builder: (context, snapshot) {
+                        // 1. Loading State
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-                        } else if (snapshot.hasError) {
-                          return Text('Error: ${snapshot.error}');
-                        } else {
+                        } 
+                        
+                        // 2. Error State (Termasuk FormatException/HTML error)
+                        if (snapshot.hasError) {
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade200),
+                            ),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red),
+                                const SizedBox(height: 8),
+                                const Text("Gagal memuat review.", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                const SizedBox(height: 4),
+                                Text("Error: ${snapshot.error}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 10)),
+                                const SizedBox(height: 4),
+                                const Text("Kemungkinan Endpoint Salah / Server Error (HTML received).", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
+                              ],
+                            ),
+                          );
+                        } 
+                        
+                        // 3. Data Processing
+                        else {
                           var reviews = snapshot.data;
-                          if (reviews == null || (reviews as List).isEmpty) {
+                          
+                          // Validasi: Pastikan data adalah List, bukan Map error atau null
+                          if (reviews == null || reviews is! List) {
+                            return const Center(
+                              child: Text("Format data dari server tidak valid (Bukan List)."),
+                            );
+                          }
+
+                          if (reviews.isEmpty) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               if (_hasUserReviewed && mounted) setState(() => _hasUserReviewed = false);
                             });
@@ -436,13 +474,12 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                           }
 
                           // --- LOGIKA LIST TILE ---
-                          
                           bool foundUserReview = false;
                           List<Widget> reviewWidgets = [];
 
                           for (var r in reviews) {
                             // Ambil data
-                            final String reviewAuthor = r['user']?.toString() ?? 'Anonymous';
+                            final String reviewAuthor = r['author']?.toString() ?? 'Anonymous';
                             final String comment = r['comment'] ?? '';
                             
                             final double rating = _safeParseDouble(r['rating']);
@@ -452,7 +489,6 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                             
                             // CEK APAKAH INI REVIEW SAYA
                             final bool isMyReview = r['is_my_review'] == true;
-                            
                             if (isMyReview) foundUserReview = true;
 
                             // UI ITEM
