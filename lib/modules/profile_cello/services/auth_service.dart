@@ -2,6 +2,12 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:srve_mobile/config/api.dart';
 
 class AuthService {
+  // 🌐 Base URL Configuration
+  // Karena kamu pakai Flutter langsung (bukan emulator), pakai localhost
+  static const String baseUrl = 'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/';
+  
+  // Alternatif: Kalau 127.0.0.1 ga jalan, coba 'http://localhost:8000'
+  
   // 🔐 Login
   static Future<Map<String, dynamic>> login(
     CookieRequest request,

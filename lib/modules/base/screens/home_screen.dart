@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
 import '../../profile_cello/screens/profile_screen.dart';
 import 'landing_page.dart';
 import '../../profile_cello/screens/profile_menu_screen.dart';
 import 'package:srve_mobile/modules/threads/screens/threads_home_page.dart';
 import '../../communities/screens/communities_list_page.dart';
-import 'package:srve_mobile/modules/matches/screens/match_list.dart';
 import 'dart:convert';
 import 'package:srve_mobile/config/api.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/facility_list_page.dart';
@@ -56,58 +56,49 @@ class _UserMenuButtonState extends State<UserMenuButton> {
     }
   }
 
-  @override
+  String getInitial() {
+     if (username.isEmpty) return "U";
+        return username[0].toUpperCase();
+  }
+
+ @override
   Widget build(BuildContext context) {
-    return PopupMenuButton(
-      offset: const Offset(0, 50),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          children: [
-            Text(
-              username,
-              style: const TextStyle(
-                color: Color(0xFF6B7E5A),
-                fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTapDown: (details) async {
+        final value = await showMenu<String>(
+          context: context,
+          position: RelativeRect.fromLTRB(
+            details.globalPosition.dx - 150,
+            details.globalPosition.dy + 8,
+            0,
+            0,
+          ),
+          items: const [
+            PopupMenuItem(
+              value: "profile",
+              child: Row(
+                children: [
+                  Icon(Icons.person_outline),
+                  SizedBox(width: 8),
+                  Text("Profile"),
+                ],
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6B7E5A)),
+            PopupMenuItem(
+              value: "logout",
+              child: Row(
+                children: [
+                  Icon(Icons.logout),
+                  SizedBox(width: 8),
+                  Text("Logout"),
+                ],
+              ),
+            ),
           ],
-        ),
-      ),
+        );
 
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: "profile",
-          child: Row(
-            children: [
-              Icon(Icons.person_outline),
-              SizedBox(width: 8),
-              Text("Profile"),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: "logout",
-          child: Row(
-            children: [
-              Icon(Icons.logout),
-              SizedBox(width: 8),
-              Text("Logout"),
-            ],
-          ),
-        ),
-      ],
+        if (!mounted) return;
 
-      onSelected: (value) async {
         if (value == "profile") {
           Navigator.push(
             context,
@@ -116,12 +107,10 @@ class _UserMenuButtonState extends State<UserMenuButton> {
         }
 
         if (value == "logout") {
-          final request =
-              Provider.of<CookieRequest>(context, listen: false);
-          await request.post(
-            '${Env.baseUrl}/accounts/ajax/logout/',
-            {},
-          );
+          final request = Provider.of<CookieRequest>(context, listen: false);
+          await request.post("${Env.baseUrl}/accounts/ajax/logout/", {});
+
+          if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const LandingPage()),
@@ -129,6 +118,18 @@ class _UserMenuButtonState extends State<UserMenuButton> {
           );
         }
       },
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: const Color(0xFF6B7E5A),
+        child: Text(
+          getInitial(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -328,12 +329,17 @@ class _HomeScreenState extends State<HomeScreen> {
     CommunitiesListPage(),
     ThreadsHomePage(),     
 <<<<<<< HEAD
+<<<<<<< HEAD
     MatchListPage(),
     PlaceholderWidget(text: "Courts"),
 =======
     PlaceholderWidget(text: "Matches"),
     BookingListPage(),
 >>>>>>> 3dcf149b0cff62eafb729a76235a26a0a43da40d
+=======
+    PlaceholderWidget(text: "Matches"),
+    BookingListPage(),
+>>>>>>> 9afea11e3ec7824d2da94426e9dbf4bb0897d5e9
   ];
   void _openBookingSmokeTest(BuildContext context) {
   final request = context.read<CookieRequest>();
@@ -529,21 +535,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "SRVE",
-          style: TextStyle(
-            color: Color(0xFF6B7E5A),
-            fontWeight: FontWeight.bold,
-          ),
+      title: const Text(
+        "SRVE",
+        style: TextStyle(
+          color: Color(0xFF6B7E5A),
+          fontWeight: FontWeight.bold,
         ),
-        backgroundColor: const Color(0xFFD4D3C9),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: UserMenuButton(),
-          ),
-        ],
       ),
+      backgroundColor: const Color(0xFFD4D3C9),
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: UserMenuButton(),
+        ),
+      ],
+    ),
 
       body: _pages[_selectedIndex],
 
@@ -710,12 +716,7 @@ class HomeTabScreen extends StatelessWidget {
                       icon: Icons.people,
                       label: "Communities",
                       color: const Color(0xFF8EA07A),
-                      onTap: () {
-                                  Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CommunitiesListPage()),
-                        );
-                      },
+                      onTap: () {},
                     ),
                     _QuickActionCard(
                       icon: Icons.reviews,

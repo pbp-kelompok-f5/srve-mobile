@@ -7,11 +7,14 @@ import 'package:provider/provider.dart';
 
 import '../models/community.dart';
 import '../services/community_service.dart';
+import '../widgets/navigation_helpers.dart';
 
 class CommunityFormPage extends StatefulWidget {
   /// Kalau null → mode CREATE
   /// Kalau ada Community → mode EDIT
   final Community? community;
+
+  static const routeName = communityFormRoute;
 
   const CommunityFormPage({super.key, this.community});
 
@@ -172,6 +175,11 @@ class _CommunityFormPageState extends State<CommunityFormPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => navigateToCommunitiesHome(context),
+        ),
         title: Text(_isEditMode ? 'Edit Community' : 'Create Community'),
       ),
       body: !request.loggedIn
