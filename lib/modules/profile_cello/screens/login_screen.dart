@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:srve_mobile/config/api.dart';
 import 'register_screen.dart';
 import '../../base/screens/home_screen.dart';
 
@@ -28,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await request.login(
-        "http://10.0.2.2:8000/accounts/ajax/login/",
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/login/",
         {
           "username": _username,
           "password": _password,
@@ -36,17 +37,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response['success'] == true) {
-        // Login success
         if (!mounted) return;
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
           (route) => false,
         );
-        print("Logged in? ${request.loggedIn}");
-        print("Cookies: ${request.cookies}");
+        // debug
+        // print("Logged in? ${request.loggedIn}");
+        // print("Cookies: ${request.cookies}");
       } else {
-        // Authentication failed
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['message'] ?? "Login failed")),
@@ -73,7 +73,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Logo
                 const Icon(
                   Icons.sports_tennis,
                   color: Color(0xFF6B7E5A),
@@ -89,8 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-
-                // Title
                 const Text(
                   "Log In",
                   style: TextStyle(
@@ -110,12 +107,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Form
                 Form(
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Username
                       TextFormField(
                         decoration: InputDecoration(
                           labelText: "Username",
@@ -133,7 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Password
                       TextFormField(
                         obscureText: true,
                         decoration: InputDecoration(
@@ -152,13 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 28),
 
-                      // Login Button
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton(
-                          onPressed:
-                              _isLoading ? null : () => _login(context),
+                          onPressed: _isLoading ? null : () => _login(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6B7E5A),
                             foregroundColor: Colors.white,
@@ -183,7 +175,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Register link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

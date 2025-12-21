@@ -9,8 +9,11 @@ import '../services/community_service.dart';
 import '../screens/community_details_page.dart';
 import '../widgets/left_drawer.dart';
 import '../screens/community_form_page.dart';
+import '../widgets/navigation_helpers.dart';
 
 class CommunitiesListPage extends StatefulWidget {
+  static const routeName = communitiesListRoute;
+
   const CommunitiesListPage({super.key});
 
   @override
@@ -190,7 +193,7 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                                       ),
                                     if (!c.isAdmin && c.isMember)
                                       const Chip(
-                                        label: Text('Members'),
+                                        label: Text('Member'),
                                         avatar: Icon(
                                           Icons.check,
                                           size: 16,
@@ -208,6 +211,9 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                               final shouldRefresh = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
+                                  settings: const RouteSettings(
+                                    name: CommunityDetailPage.routeName,
+                                  ),
                                   builder: (_) => CommunityDetailPage(community: c),
                                 ),
                               );
@@ -247,6 +253,9 @@ class _CommunitiesListPageState extends State<CommunitiesListPage> {
                 final shouldRefresh = await Navigator.push(
                   context,
                   MaterialPageRoute(
+                    settings: const RouteSettings(
+                      name: CommunityFormPage.routeName,
+                    ),
                     builder: (_) => const CommunityFormPage(),
                   ),
                 );
