@@ -3,7 +3,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 class AuthService {
   // 🌐 Base URL Configuration
   // Karena kamu pakai Flutter langsung (bukan emulator), pakai localhost
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static const String baseUrl = 'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/';
   
   // Alternatif: Kalau 127.0.0.1 ga jalan, coba 'http://localhost:8000'
   

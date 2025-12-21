@@ -20,9 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
 
   // GANTI BASE URL jika perlu (emulator vs real device)
-  // Android emulator => 10.0.2.2
   // iOS simulator / web => 127.0.0.1
-  static const String baseUrl = "http://10.0.2.2:8000";
+  static const String baseUrl = "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
 
   Future<void> _register(BuildContext context) async {
     final request = Provider.of<CookieRequest>(context, listen: false);

@@ -31,7 +31,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       final response = await request.post(
-        "http://10.0.2.2:8000/accounts/ajax/profile/change-password/",
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/change-password/",
         {
           "old_password": _oldPassword,
           "new_password": _newPassword,

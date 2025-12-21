@@ -20,7 +20,7 @@ class _DeleteProfileScreenState extends State<DeleteProfileScreen> {
 
     try {
       final response = await request.post(
-        "http://10.0.2.2:8000/accounts/ajax/profile/delete/",
+        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/delete/",
         {},
       );
 

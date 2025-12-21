@@ -10,12 +10,11 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/community.dart';
 
 // Gunakan host yang sesuai untuk emulator / platform:
-// - Android emulator: 10.0.2.2 (loopback ke host)
 // - iOS simulator / web / desktop: localhost / 127.0.0.1
 final String baseUrl = () {
   if (kIsWeb) return "http://127.0.0.1:8000";
-  if (Platform.isAndroid) return "http://10.0.2.2:8000";
-  return "http://127.0.0.1:8000";
+  if (Platform.isAndroid) return "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
+  return "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
 }();
 
 /// Pastikan kita punya CSRF token sebelum POST ke endpoint Django form-based.
