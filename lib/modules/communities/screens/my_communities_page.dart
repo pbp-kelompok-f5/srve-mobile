@@ -9,8 +9,11 @@ import '../screens/community_form_page.dart';
 import '../screens/community_details_page.dart';
 import '../services/community_service.dart';
 import '../widgets/left_drawer.dart';
+import '../widgets/navigation_helpers.dart';
 
 class MyCommunitiesPage extends StatefulWidget {
+  static const routeName = myCommunitiesRoute;
+
   const MyCommunitiesPage({super.key});
 
   @override
@@ -40,19 +43,19 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hapus Komunitas'),
+          title: const Text('Delete Community'),
           content: const Text(
-            'Apakah kamu yakin ingin menghapus komunitas ini?\n'
-            'Aksi ini tidak bisa dibatalkan.',
+            'Are you sure you want to delete this community?\n'
+            'This action cannot be undone',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal'),
+              child: const Text('Discard'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -82,7 +85,23 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
     final request = context.watch<CookieRequest>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Communities')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => navigateToCommunitiesHome(context),
+        ),
+        title: const Text('My Communities'),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              tooltip: 'Open menu',
+            ),
+          ),
+        ],
+      ),
       drawer: const LeftDrawer(),
       body: request.loggedIn
           ? RefreshIndicator(
@@ -97,7 +116,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                   if (snapshot.hasError) {
                     return Center(
                       child: Text(
-                        'Terjadi kesalahan saat memuat komunitas.\n${snapshot.error}',
+                        'Error Loading Community\n${snapshot.error}',
                         textAlign: TextAlign.center,
                       ),
                     );
@@ -108,8 +127,8 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                       child: Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Text(
-                          'Kamu belum menjadi anggota komunitas apapun.\n'
-                          'Coba join komunitas dari halaman All Communities.',
+                          'No Communities Joined\n'
+                          'Become a Member of a Community!',
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -149,7 +168,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   c.description.isEmpty
-                                      ? 'Tidak ada deskripsi.'
+                                      ? 'No Description'
                                       : c.description,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -190,7 +209,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${c.membersCount} anggota',
+                                      '${c.membersCount} members',
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                   ],
@@ -202,7 +221,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                                   children: [
                                     if (c.isAdmin)
                                       const Chip(
-                                        label: Text('Kamu Admin'),
+                                        label: Text('You are Admin'),
                                         avatar: Icon(Icons.shield, size: 16),
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
@@ -210,7 +229,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                                       )
                                     else
                                       const Chip(
-                                        label: Text('Kamu Anggota'),
+                                        label: Text('You are a Member'),
                                         avatar: Icon(Icons.check, size: 16),
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
@@ -221,17 +240,20 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                               ],
                             ),
                             onTap: () async {
-                                final shouldRefresh = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CommunityDetailPage(community: c),
+                              final shouldRefresh = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  settings: const RouteSettings(
+                                    name: CommunityDetailPage.routeName,
                                   ),
-                                );
+                                  builder: (_) => CommunityDetailPage(community: c),
+                                ),
+                              );
 
                                 if (shouldRefresh == true && mounted) {
                                   // untuk list all:
                                   setState(() {
-                                    _futureMyCommunities = _communityService.fetchAllCommunities();
+                                    _futureMyCommunities = _communityService.fetchMyCommunities();
                                   });
 
                                   // untuk my communities:
@@ -244,12 +266,15 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                               children: [
                                 if (c.isAdmin)
                                   IconButton(
-                                        tooltip: 'Edit komunitas',
+                                        tooltip: 'Edit Community',
                                         icon: const Icon(Icons.edit),
                                         onPressed: () async {
                                           final shouldRefresh = await Navigator.push(
                                             context,
                                             MaterialPageRoute(
+                                              settings: const RouteSettings(
+                                                name: CommunityFormPage.routeName,
+                                              ),
                                               builder: (_) => CommunityFormPage(community: c),
                                             ),
                                           );
@@ -262,7 +287,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
                                   ),
                                 if (c.isAdmin)
                                   IconButton(
-                                    tooltip: 'Hapus komunitas',
+                                    tooltip: 'Delete Community',
                                     icon: const Icon(Icons.delete),
                                     onPressed: () => _deleteCommunity(c.slug),
                                   ),
@@ -280,7 +305,7 @@ class _MyCommunitiesPageState extends State<MyCommunitiesPage> {
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
-                  'Silakan login terlebih dahulu untuk melihat komunitas milikmu.',
+                  'login required to view your communities.',
                   textAlign: TextAlign.center,
                 ),
               ),
