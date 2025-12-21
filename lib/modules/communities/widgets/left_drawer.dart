@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 
-import '../screens/communities_list_page.dart';
 import '../screens/my_communities_page.dart';
+import 'navigation_helpers.dart';
 
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({super.key});
@@ -16,7 +16,7 @@ class LeftDrawer extends StatelessWidget {
         children: [
           const DrawerHeader(
             decoration: BoxDecoration(
-              color: Colors.blue,
+              color: Color(0xFF6B7E5A),
             ),
             child: Align(
               alignment: Alignment.bottomLeft,
@@ -34,14 +34,7 @@ class LeftDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.public),
             title: const Text('All Communities'),
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CommunitiesListPage(),
-                ),
-              );
-            },
+            onTap: () => closeDrawerAndNavigateToCommunitiesHome(context),
           ),
 
           // My Communities
@@ -49,9 +42,13 @@ class LeftDrawer extends StatelessWidget {
             leading: const Icon(Icons.group),
             title: const Text('My Communities'),
             onTap: () {
-              Navigator.pushReplacement(
+              Navigator.pop(context); // close drawer first
+              Navigator.push(
                 context,
                 MaterialPageRoute(
+                  settings: const RouteSettings(
+                    name: MyCommunitiesPage.routeName,
+                  ),
                   builder: (_) => const MyCommunitiesPage(),
                 ),
               );

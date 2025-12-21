@@ -8,9 +8,13 @@ import '../models/community.dart';
 import '../services/community_service.dart';
 import '../widgets/left_drawer.dart';
 import '../screens/community_form_page.dart';
+import '../widgets/navigation_helpers.dart';
+import '../screens/my_communities_page.dart';
 
 class CommunityDetailPage extends StatefulWidget {
   final Community community;
+
+  static const routeName = communityDetailRoute;
 
   const CommunityDetailPage({super.key, required this.community});
 
@@ -37,19 +41,19 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hapus Komunitas'),
+          title: const Text('Delete Community'),
           content: const Text(
-            'Apakah kamu yakin ingin menghapus komunitas ini?\n'
-            'Aksi ini tidak dapat dibatalkan.',
+            'Are you sure you want to delete this community?\n'
+            'This action cannot be undone',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal'),
+              child: const Text('Discard'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -93,6 +97,9 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
     final shouldRefresh = await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(
+          name: CommunityFormPage.routeName,
+        ),
         builder: (_) => CommunityFormPage(
           community: _community!,
         ),
@@ -117,7 +124,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
         return AlertDialog(
           title: const Text('Leave Community'),
           content: const Text(
-            'Apakah kamu yakin ingin keluar dari komunitas ini?',
+            'Are you sure you want to leave this community?',
           ),
           actions: [
             TextButton(
@@ -198,8 +205,16 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
         membersCount: _community!.membersCount + 1,
       );
 
-      // Kembali ke list dengan sinyal refresh
-      Navigator.pop(context, true);
+      // Redirect to My Communities after joining
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          settings: const RouteSettings(
+            name: MyCommunitiesPage.routeName,
+          ),
+          builder: (_) => const MyCommunitiesPage(),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -216,8 +231,20 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => navigateToCommunitiesHome(context),
+        ),
         title: Text(c.name),
         actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              tooltip: 'Open menu',
+            ),
+          ),
           if (request.loggedIn && c.isAdmin)
             IconButton(
               icon: const Icon(Icons.edit),
@@ -313,20 +340,42 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
             ),
             const SizedBox(height: 24),
             if (request.loggedIn && !c.isAdmin && !c.isMember)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isJoining ? null : _joinCommunity,
-                  icon: _isJoining
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.group_add),
-                  label: Text(_isJoining ? 'Joining...' : 'Join Community'),
-                ),
-              ),
+              c.openToPublic
+                  ? SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isJoining ? null : _joinCommunity,
+                        icon: _isJoining
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.group_add),
+                        label: Text(_isJoining ? 'Joining...' : 'Join Community'),
+                      ),
+                    )
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.amber.shade700),
+                      ),
+                      child: Row(
+                        children: const [
+                          Icon(Icons.lock, color: Colors.black54),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This community is private',
+                              style: TextStyle(color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             if (request.loggedIn && !c.isAdmin && c.isMember)
               SizedBox(
                 width: double.infinity,
