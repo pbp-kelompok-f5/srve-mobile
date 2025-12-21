@@ -1,15 +1,11 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
+import 'package:srve_mobile/config/api.dart';
 
 class ErichBookingEnv {
-  static String get baseUrl {
-    if (kIsWeb) return 'http://127.0.0.1:8000';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000'; // Android emulator
-    return 'http://127.0.0.1:8000'; // iOS simulator / macOS
-  }
+  static String get baseUrl => Env.baseUrl;
 
   static String get alive => '$baseUrl/booking/alive/';
   static String get facilities => '$baseUrl/booking/json_facilities/';
+  
   static String availability(int facilityId, String dateIso) =>
       '$baseUrl/booking/api/availability/?facility=$facilityId&date=$dateIso';
 

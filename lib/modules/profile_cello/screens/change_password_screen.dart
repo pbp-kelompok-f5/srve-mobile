@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:srve_mobile/config/api.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -31,7 +32,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     try {
       final response = await request.post(
-        "http://10.0.2.2:8000/accounts/ajax/profile/change-password/",
+        "${Env.baseUrl}/accounts/ajax/profile/change-password/",
         {
           "old_password": _oldPassword,
           "new_password": _newPassword,
