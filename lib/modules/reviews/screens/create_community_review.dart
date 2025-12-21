@@ -90,9 +90,9 @@ class _CommunityReviewFormState extends State<CommunityReviewForm> {
             ),
           ),
 
-          // --- LAYER 2: Overlay Beige Transparan ---
+          // --- LAYER 2: Overlay Hitam Transparan ---
           Container(
-            color: const Color.fromARGB(0, 0, 0, 0),
+            color: const Color.fromRGBO(229, 215, 196, 0.65),
           ),
 
           // --- LAYER 3: Content ---
@@ -105,10 +105,10 @@ class _CommunityReviewFormState extends State<CommunityReviewForm> {
                   // Tombol Back
                   TextButton.icon(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 85, 96, 71), size: 20),
                     label: Text(
                       "Back to Community",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                      style: TextStyle(color: Color.fromARGB(255, 85, 96, 71), fontWeight: FontWeight.w800),
                     ),
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.zero,

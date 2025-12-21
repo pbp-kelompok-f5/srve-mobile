@@ -706,12 +706,6 @@ class HomeTabScreen extends StatelessWidget {
                       color: const Color(0xFF8EA07A),
                       onTap: () {},
                     ),
-                    _QuickActionCard(
-                      icon: Icons.reviews,
-                      label: "Reviews",
-                      color: const Color(0xFF9BAE88),
-                      onTap: () {},
-                    ),
                   ],
                 ),
               ],

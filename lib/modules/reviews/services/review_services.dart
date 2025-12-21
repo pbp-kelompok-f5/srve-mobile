@@ -18,13 +18,43 @@ class ReviewService {
   }
 
   // Edit Community Review
-  Future<Map<String, dynamic>> editCommunityReview(CookieRequest request, int reviewId, Map<String, dynamic> data) async {
-    final response = await request.postJson(
-      "$baseUrl/reviews/community/edit/$reviewId/",
-      jsonEncode(data),
-    );
-    return response;
+  Future<Map<String, dynamic>> editCommunityReview(
+      CookieRequest request, int reviewId, Map<String, dynamic> data) async {
+
+    final Map<String, dynamic> formData = {
+      'communication': data['communication'].toString(),
+      'sportmanship': data['sportmanship'].toString(), // Pastikan ejaan sama dengan backend
+      'playtime': data['playtime'].toString(),
+      'comment': data['comment'] ?? "",
+    };
+
+    try {
+      final response = await request.post(
+        "$baseUrl/reviews/edit-community-flutter/$reviewId/", 
+        formData,
+      );
+
+
+      if (response['status'] == 'success') {
+        return {
+          'success': true,
+          'message': response['message'] ?? 'Review updated successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response['message'] ?? 'Failed to update review',
+        };
+      }
+    } catch (e) {
+      // Tangani error koneksi/parsing
+      return {
+        'success': false,
+        'message': 'Connection error: $e',
+      };
+    }
   }
+
 
   // Delete Community Review
   Future<dynamic> deleteCommunityReview(CookieRequest request, int reviewId) async {
@@ -35,22 +65,41 @@ class ReviewService {
 
   // Create Facility Review
   Future<Map<String, dynamic>> createFacilityReview(CookieRequest request, int facilityId, Map<String, dynamic> data) async {
+    final url = '$baseUrl/reviews/api/facility/$facilityId/create-flutter/';
+    
     final response = await request.postJson(
-      "$baseUrl/reviews/facility/$facilityId/create-flutter/",
-      jsonEncode(data),
+      url,
+      jsonEncode(data), 
     );
+    
     return response;
   }
+  
 
   // Edit Facility Review
-  Future<Map<String, dynamic>> editFacilityReview(CookieRequest request, int reviewId, Map<String, dynamic> data) async {
-    final response = await request.postJson(
-      "$baseUrl/reviews/facility/edit/$reviewId/",
-      jsonEncode(data),
-    );
-    return response;
-  }
+  Future<Map<String, dynamic>> editFacilityReview(
+    CookieRequest request, 
+    int reviewId, 
+    Map<String, dynamic> data // Data: cleanliness, field_condition, comment
+  ) async {
+    
+    final String url = 'http://10.0.2.2:8000/reviews/edit-flutter/$reviewId/'; 
+  
+    try {
+      final response = await request.postJson(
+        url,
+        jsonEncode(data), 
+      );
 
+      if (response['status'] == 'success') {
+        return {'success': true, 'message': response['message']};
+      } else {
+        return {'success': false, 'message': response['message']};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Error connecting to server: $e'};
+    }
+  }
   // Delete Facility Review
   Future<dynamic> deleteFacilityReview(CookieRequest request, int reviewId) async {
     return await request.post("$baseUrl/reviews/delete/facility/$reviewId/", {});
