@@ -12,10 +12,7 @@ import 'package:srve_mobile/config/api.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/facility_list_page.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
 import 'package:srve_mobile/modules/booking_erich/screens/booking_list_page.dart';
-
-
-
-
+import 'package:srve_mobile/modules/matches/screens/match_list.dart'; // ✅ TAMBAHKAN
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -327,7 +324,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = const [
     HomeTabScreen(),
     CommunitiesListPage(),
-    ThreadsHomePage(),     
+    ThreadsHomePage(),
+    MatchListPage(),
+    PlaceholderWidget(text: "Courts"),
   ];
   void _openBookingSmokeTest(BuildContext context) {
   final request = context.read<CookieRequest>();
@@ -698,13 +697,23 @@ class HomeTabScreen extends StatelessWidget {
                       icon: Icons.sports,
                       label: "Find Match",
                       color: const Color(0xFF7C8F69),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MatchListPage()),
+                        );
+                      },
                     ),
                     _QuickActionCard(
                       icon: Icons.people,
                       label: "Communities",
                       color: const Color(0xFF8EA07A),
-                      onTap: () {},
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CommunitiesListPage()),
+                        );
+                      },
                     ),
                     _QuickActionCard(
                       icon: Icons.reviews,

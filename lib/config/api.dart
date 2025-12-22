@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart'
 
 class Env {
   // Backend base URL
-  static const String baseUrl = 'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/';
+  static const String baseUrl = 'http://localhost:8000/';
 
   // Threads
   static String get threadsListApi => '$baseUrl/threads/api/';

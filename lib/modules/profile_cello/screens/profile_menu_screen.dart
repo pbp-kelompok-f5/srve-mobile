@@ -34,7 +34,7 @@ class ProfileMenuScreen extends StatelessWidget {
               ),
               child: FutureBuilder(
                 future: Provider.of<CookieRequest>(context, listen: false)
-                    .get("https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/profile/"),
+                    .get("http://localhost:8000/accounts/ajax/profile/"),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(
@@ -74,7 +74,7 @@ class ProfileMenuScreen extends StatelessWidget {
               leading: const Icon(Icons.logout),
               title: const Text("Logout"),
               onTap: () async {
-                await request.logout("https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/accounts/ajax/logout/");
+                await request.logout("http://localhost:8000/accounts/ajax/logout/");
                 Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
               },
             ),

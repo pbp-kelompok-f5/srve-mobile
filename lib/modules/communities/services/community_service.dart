@@ -8,7 +8,7 @@ import '../models/community.dart';
 
 // Gunakan host yang sesuai untuk emulator / platform:
 // - iOS simulator / web / desktop: localhost / 127.0.0.1
-final String baseUrl = "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/";
+final String baseUrl = "http://localhost:8000/";
 
 /// Pastikan kita punya CSRF token sebelum POST ke endpoint Django form-based.
 Future<String?> _ensureCsrfToken(CookieRequest request) async {

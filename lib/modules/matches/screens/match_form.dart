@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:srve_mobile/modules/matches/screens/match_list.dart';
-import 'package:srve_mobile/widgets/left_drawer.dart';
 
 class MatchFormPage extends StatefulWidget {
   const MatchFormPage({super.key});
@@ -215,7 +214,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
                   onPressed: () async {
                     if (_formKey.currentState!.validate() && _selectedDate != null) {
                       final response = await request.postJson(
-                        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/create-flutter/",
+                        "http://localhost:8000/match/create-flutter/",
                         jsonEncode(<String, String>{
                           'title': _title,
                           'lokasi': _lokasi,

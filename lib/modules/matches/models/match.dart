@@ -1,9 +1,10 @@
-// Timpa seluruh isi file dengan ini, atau tambahkan field isHost
 import 'dart:convert';
 
-List<Match> matchFromJson(String str) => List<Match>.from(json.decode(str).map((x) => Match.fromJson(x)));
+List<Match> matchFromJson(String str) =>
+    List<Match>.from(json.decode(str).map((x) => Match.fromJson(x)));
 
-String matchToJson(List<Match> data) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+String matchToJson(List<Match> data) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class Match {
     String model;
@@ -39,7 +40,7 @@ class Fields {
     String jenisOlahraga;
     int maxPlayers;
     List<int> players;
-    bool isHost; // TAMBAHAN FIELD BARU
+    bool isHost; // Critical field for host detection
 
     Fields({
         required this.host,
@@ -51,26 +52,40 @@ class Fields {
         required this.jenisOlahraga,
         required this.maxPlayers,
         required this.players,
-        required this.isHost, // TAMBAHAN
+        required this.isHost,
     });
 
-    factory Fields.fromJson(Map<String, dynamic> json) => Fields(
-        host: json["host"],
-        title: json["title"] ?? "Untitled Match",
-        tanggal: json["tanggal"] != null ? DateTime.parse(json["tanggal"]) : DateTime.now(),
-        lokasi: json["lokasi"],
-        isCompleted: json["is_completed"] ?? false,
-        createdAt: json["created_at"] != null ? DateTime.parse(json["created_at"]) : DateTime.now(),
-        jenisOlahraga: json["jenis_olahraga"],
-        maxPlayers: json["max_players"],
-        players: List<int>.from(json["players"].map((x) => x)),
-        isHost: json["is_host"] ?? false, // BACA DARI JSON, DEFAULT FALSE
-    );
+    factory Fields.fromJson(Map<String, dynamic> json) {
+        // Debug print to verify backend data
+        print("Parsing match: ${json['title']}");
+        print("  host: ${json['host']}");
+        print("  is_host from backend: ${json['is_host']}");
+
+        return Fields(
+            host: json["host"],
+            title: json["title"] ?? "Untitled Match",
+            tanggal: json["tanggal"] != null
+                ? DateTime.parse(json["tanggal"])
+                : DateTime.now(),
+            lokasi: json["lokasi"],
+            isCompleted: json["is_completed"] ?? false,
+            createdAt: json["created_at"] != null
+                ? DateTime.parse(json["created_at"])
+                : DateTime.now(),
+            jenisOlahraga: json["jenis_olahraga"],
+            maxPlayers: json["max_players"],
+            players: List<int>.from(json["players"].map((x) => x)),
+            // CRITICAL: Parse is_host from backend
+            isHost: json["is_host"] ?? false,
+        );
+    }
 
     Map<String, dynamic> toJson() => {
         "host": host,
         "title": title,
-        "tanggal": "${tanggal.year.toString().padLeft(4, '0')}-${tanggal.month.toString().padLeft(2, '0')}-${tanggal.day.toString().padLeft(2, '0')}",
+        "tanggal": "${tanggal.year.toString().padLeft(4, '0')}-"
+            "${tanggal.month.toString().padLeft(2, '0')}-"
+            "${tanggal.day.toString().padLeft(2, '0')}",
         "lokasi": lokasi,
         "is_completed": isCompleted,
         "created_at": createdAt.toIso8601String(),

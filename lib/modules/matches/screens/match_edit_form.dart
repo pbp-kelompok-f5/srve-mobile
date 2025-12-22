@@ -73,7 +73,7 @@ class _MatchEditFormPageState extends State<MatchEditFormPage> {
     if (confirm == true) {
       // GANTI URL sesuai endpoint delete kamu
       final response = await request.post(
-        'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/delete-flutter/${widget.match.pk}/', 
+        'http://localhost:8000/match/delete-flutter/${widget.match.pk}/', 
         jsonEncode({}),
       );
 
@@ -192,7 +192,7 @@ class _MatchEditFormPageState extends State<MatchEditFormPage> {
                     if (_formKey.currentState!.validate()) {
                       // GANTI URL sesuai endpoint edit kamu
                       final response = await request.postJson(
-                        "https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/match/edit-flutter/${widget.match.pk}/",
+                        "http://localhost:8000/match/edit-flutter/${widget.match.pk}/",
                         jsonEncode(<String, dynamic>{
                           'title': _title,
                           'lokasi': _lokasi,

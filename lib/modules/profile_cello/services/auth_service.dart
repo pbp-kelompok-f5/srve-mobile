@@ -4,7 +4,7 @@ import 'package:srve_mobile/config/api.dart';
 class AuthService {
   // 🌐 Base URL Configuration
   // Karena kamu pakai Flutter langsung (bukan emulator), pakai localhost
-  static const String baseUrl = 'https://khayru-rafamanda-srve.pbp.cs.ui.ac.id/';
+  static const String baseUrl = 'http://localhost:8000/';
   
   // Alternatif: Kalau 127.0.0.1 ga jalan, coba 'http://localhost:8000'
   
